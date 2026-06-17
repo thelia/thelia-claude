@@ -18,13 +18,13 @@ A CI check (`scripts/check-neutrality.sh`) fails the build on these. It scans `p
 
 - Absolute or personal filesystem paths (home directories, user-config locations, temporary working files)
 - Personal names, company names, or client names
-- Dates and session markers (a skill is a fact, not a journal)
 - Internal backlog or ticket references
 - Links to a private memory store
 - Coupling to private slash commands or a personal model-routing strategy
 
-Two more the check cannot catch, so watch for them yourself:
+Three more the check cannot catch, so watch for them yourself:
 
+- Dates and session markers. A skill is a fact, not a journal. An example date inside code or a changelog template is fine; a date that records when you did something is not.
 - Volatile specifics that rot: exact dependency versions, test counts, "new in version X" framing. Describe the behavior and anchor on stable concepts. Name a version only when the version is the actual point.
 - Implementation trivia that only mattered for one screen. Pull out the pattern that travels and drop the rest.
 

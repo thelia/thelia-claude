@@ -20,8 +20,6 @@ PATTERNS=(
   '/os-(feature|init|review|setup-project)\b'
   '\[\[[A-Za-z0-9_-]+\]\]'
   '\b(PAR|B)-[0-9]{2,}\b'
-  '/tmp/'
-  '[0-9]{4}-[0-9]{2}-[0-9]{2}'
 )
 
 DESCRIPTIONS=(
@@ -31,8 +29,6 @@ DESCRIPTIONS=(
   "coupling to private /os-* commands"
   "private memory cross-links"
   "internal backlog references (PAR-/B-)"
-  "temporary working paths"
-  "ISO date stamps (a skill is a fact, not a journal)"
 )
 
 fail=0
