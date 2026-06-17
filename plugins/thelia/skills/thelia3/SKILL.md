@@ -1,11 +1,11 @@
 ---
 name: thelia3
-description: "Thelia 3 e-commerce framework (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, Flexy/Twig front, Smarty back-office). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, twig branch, TheliaKernel, BaseModule, configureServices, BaseHook, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
+description: "Thelia 3 e-commerce framework (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, twig branch, TheliaKernel, BaseModule, configureServices, BaseHook, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
 ---
 
 # Thelia 3 - Module Development Guide
 
-> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, `twig` branch. Front 100% Twig (Flexy, Webpack Encore, Tailwind), back-office 100% Smarty. No Doctrine, no Messenger, no Turbo/Mercure.
+> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, `twig` branch. Front in Twig (Flexy, Webpack Encore, Tailwind), back-office in Twig via the default-twig theme. No Doctrine, no Messenger, no Turbo/Mercure.
 
 ## 1. Decision router - "I want to..."
 
@@ -72,7 +72,7 @@ local/modules/MyModule/
 +- Loop/                     # extends BaseLoop -> auto-tag thelia.loop (deprecated)
 +- I18n/                     # fr_FR.php, en_US.php
 +- templates/
-|  +- backOffice/default/    # Smarty (.html) - back-office hooks
+|  +- backOffice/default-twig/ # Twig (.html.twig) - back-office hooks
 |  +- frontOffice/flexy/     # Twig overrides (.html.twig)
 +- MyModule.php              # extends BaseModule + configureServices()
 ```
@@ -152,7 +152,7 @@ final class MyModule extends BaseModule
 - Listeners: `EventSubscriberInterface` (dominant in core) or `#[AsEventListener]` (to adopt when appropriate).
 - Back-office hooks: `extends BaseHook` + `getSubscribedHooks()` -> **AUTO-tagged, NO `<hooks>` declaration required**.
 - Legacy loops: `extends BaseLoop` -> AUTO-tagged, snake_case auto. `BaseLoop` is `@deprecated` - prefer API Resources.
-- Back-office hook templates = **Smarty only**.
+- Back-office hook templates are Twig in the default-twig theme. See the `thelia3-backoffice-twig` skill for back-office theming, hooks, i18n, and forms.
 - Details: [references/hooks.md](references/hooks.md)
 
 ### 3.5 Forms
