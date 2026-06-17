@@ -1,0 +1,32 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  neutrality:
+    name: Neutrality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shared content is neutral
+        run: bash scripts/check-neutrality.sh
+
+  manifests:
+    name: Manifest validity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON manifests
+        run: |
+          set -e
+          shopt -s globstar nullglob
+          found=0
+          for f in .claude-plugin/**/*.json plugins/**/*.json; do
+            echo "validating $f"
+            python3 -m json.tool "$f" > /dev/null
+            found=1
+          done
+          [ "$found" -eq 1 ] || { echo "no manifests found"; exit 1; }
