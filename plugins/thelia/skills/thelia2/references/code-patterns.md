@@ -1,8 +1,8 @@
-# Thelia 2.6 -- Code patterns
+# Thelia 2.6: Code patterns
 
 > Stack T2.6: PHP 8.2+, Symfony 6.4. Several modern patterns can be applied to new modules without modifying the core. This guide consolidates the recommended conventions.
 
-## 1. `declare(strict_types=1)` -- required
+## 1. `declare(strict_types=1)`: required
 
 Every PHP file in the module starts with:
 
@@ -45,9 +45,9 @@ final readonly class CreateItemDto
 - Listeners
 - Hooks
 
-Rationale: testability, isolation, mocking, reusability. The T2.6 core often mixes Propel queries everywhere -- the project convention imposes the separation.
+Rationale: testability, isolation, mocking, reusability. The T2.6 core often mixes Propel queries everywhere; the project convention imposes the separation.
 
-### Tolerated exception -- clarification
+### Tolerated exception: clarification
 
 One case only: direct queries on core models (`CategoryQuery::create()`, `CountryQuery::create()`) **inside a native core loop** (`Loop/Product.php`, `Loop/Category.php`) or a very tightly-scoped framework fork.
 
@@ -145,7 +145,7 @@ final class ItemLoop extends BaseLoop implements PropelSearchLoopInterface
     public function __construct(
         private readonly ItemRepository $repository,
     ) {
-        parent::__construct(/* inject via container -- see autoconfigure docs */);
+        parent::__construct(/* inject via container; see autoconfigure docs */);
     }
 
     public function buildModelCriteria()
@@ -226,7 +226,7 @@ final class ItemController extends BaseAdminController
 
 `Thelia\Core\Routing\AnnotationRouter` (tag `router.register`, priority 255) automatically scans `<module>/Controller/` at boot via `AnnotationDirectoryLoader`. No declaration in `routing.xml` needed. Source: `core/lib/Thelia/Core/Routing/AnnotationRouter.php`.
 
-**Major pitfall**: these routes are **invisible** in `php Thelia debug:router` and `router:match` returns "None of the routes match" -- those commands only list `router.default` (Symfony FrameworkBundle), not the full `chainRouter`.
+**Major pitfall**: these routes are **invisible** in `php Thelia debug:router` and `router:match` returns "None of the routes match". Those commands only list `router.default` (Symfony FrameworkBundle), not the full `chainRouter`.
 
 To verify a module route is loaded:
 - Direct hit via curl + admin cookie (200 or auth required = route found, true 404 = absent)
@@ -238,7 +238,7 @@ Optional prefix per module: override `BaseModule::getAnnotationRoutePrefix(): st
 
 After bumping `module.xml::version` + adding a column in `schema.xml` + creating `Config/update/X.X.X.sql`:
 1. `php Thelia module:refresh` applies the SQL via `BaseModule::update()`
-2. But the TableMap in `var/cache/{env}/propel/model/{Module}/Model/Map/{Table}TableMap.php` **remains stale** -- new `COL_*` constants and Propel getters/setters do not appear
+2. But the TableMap in `var/cache/{env}/propel/model/{Module}/Model/Map/{Table}TableMap.php` **remains stale**: new `COL_*` constants and Propel getters/setters do not appear
 3. **Required**: `rm -rf var/cache/dev/* var/cache/prod/* && php Thelia cache:clear`
 4. Verify: `grep COL_NEW_COLUMN var/cache/dev/propel/model/.../TableMap.php`
 
@@ -286,7 +286,7 @@ Name methods with business verbs (`findVisibleByCategory()`) rather than technic
 
 ## 10. No redundant PHPDoc
 
-Code is documentation -- no PHPDoc that paraphrases the signature:
+Code is documentation; no PHPDoc that paraphrases the signature:
 
 ```php
 // BAD
@@ -296,7 +296,7 @@ Code is documentation -- no PHPDoc that paraphrases the signature:
  */
 public function getCustomer(): Customer
 
-// GOOD -- the signature is sufficient
+// GOOD: the signature is sufficient
 public function getCustomer(): Customer
 ```
 
@@ -329,9 +329,9 @@ public function create(
 
 Reserve for non-Smarty endpoints (API, AJAX). For classic HTML web forms, keep `BaseForm` + `validateForm()`.
 
-## 12bis. Strict DI -- `new XxxRepository()` FORBIDDEN
+## 12bis. Strict DI: `new XxxRepository()` FORBIDDEN
 
-`final readonly class XxxRepository` classes must be **injected**, never instantiated via `new`. Even a repository with no external dependency today may acquire one later (logger, cache) -- manual instantiation then silently bypasses the Symfony container.
+`final readonly class XxxRepository` classes must be **injected**, never instantiated via `new`. Even a repository with no external dependency today may acquire one later (logger, cache), and manual instantiation would silently bypass the Symfony container.
 
 ### Specific pitfalls
 
@@ -344,14 +344,14 @@ In certain inherited methods from the core (`AbstractPaymentModule::pay()`, `Abs
 ### TO BLOCK IN REVIEW
 
 ```php
-// BAD -- bypasses DI
+// BAD: bypasses DI
 public function pay(Order $order): Response
 {
     $repository = new BankTransferConfigRepository();
     // ...
 }
 
-// GOOD -- via container
+// GOOD: via container
 public function pay(Order $order): Response
 {
     $repository = $this->getContainer()->get(BankTransferConfigRepository::class);
@@ -363,13 +363,13 @@ public function pay(Order $order): Response
 
 1. `declare(strict_types=1)` systematically
 2. `final readonly` for services and DTOs (except Thelia controllers + BaseForm)
-3. **Strict Repository pattern** -- no inline Propel query in controller/loop/listener/hook (except tightly-scoped native core model)
+3. **Strict Repository pattern**: no inline Propel query in controller/loop/listener/hook (except tightly-scoped native core model)
 4. `enum` instead of string constants
 5. `#[AsEventListener]`, `#[AsCommand]`, `#[Route]`, `#[AutowireIterator]` PHP 8
 6. No abbreviations in naming
-7. No redundant PHPDoc -- strict types in signature
+7. No redundant PHPDoc; strict types in signature
 8. English for technical identifiers
 9. No `ContainerAwareTrait` or `$container->get()` in services
 10. CSRF never disabled on `BaseForm`
-11. **Never `new XxxRepository()` inline** -- always via DI or `$this->getContainer()->get()` in inherited methods without injection
-12. `XxxQuery::create()` inline forbidden in all custom module code (loop, listener, hook, controller, service) -- exception **only** for native core loops
+11. **Never `new XxxRepository()` inline**: always via DI or `$this->getContainer()->get()` in inherited methods without injection
+12. `XxxQuery::create()` inline forbidden in all custom module code (loop, listener, hook, controller, service); exception **only** for native core loops

@@ -1,25 +1,25 @@
-# Thelia 2.6 -- API Platform 3.4 + Propel Bridge
+# Thelia 2.6: API Platform 3.4 + Propel Bridge
 
 > Source: `core/lib/Thelia/Api/`, `core/lib/Thelia/Api/Bridge/Propel/`. AP version 3.4 (bundle `ApiPlatform\Symfony\Bundle\ApiPlatformBundle`). Single format JSON-LD.
 
 ## 1. Bootstrap
 
 - Bundle: `ApiPlatform\Symfony\Bundle\ApiPlatformBundle` (`config/bundles.php:5`).
-- Config: `config/packages/api_platform.yaml` -- `formats: jsonld`, `stateless: true`, `use_symfony_listeners: true`, `rfc_7807_compliant_errors: true`, `keep_legacy_inflector: false`.
-- Routes: `config/routes/api_platform.yaml` -- prefix `/api`.
-- Resource mapping: INJECTED IN PHP, not YAML (`core/lib/Thelia/Config/Resources/services.php:79-103`) -- scans `THELIA_LIB/Api/Resource` + `{module}/Api/Resource/` of active modules.
+- Config: `config/packages/api_platform.yaml` with `formats: jsonld`, `stateless: true`, `use_symfony_listeners: true`, `rfc_7807_compliant_errors: true`, `keep_legacy_inflector: false`.
+- Routes: `config/routes/api_platform.yaml`, prefix `/api`.
+- Resource mapping: injected in PHP, not YAML (`core/lib/Thelia/Config/Resources/services.php:79-103`), scans `THELIA_LIB/Api/Resource` + `{module}/Api/Resource/` of active modules.
 - Single format: **JSON-LD** (`application/ld+json`). No pure JSON, no HAL, no JSON:API.
 
-## 2. AP 3.4 -- important limits
+## 2. AP 3.4: important limits
 
 **What does NOT exist in AP 3.4 (and therefore not in T2.6):**
 
-- `QueryParameter` system (AP 4.1+) -- continue using `#[ApiFilter]`.
-- `Metadata Mutators` (AP 4.2+) -- no API for modifying resource metadata.
-- `JsonStreamer` (AP 4.2 / SF 7.3) -- no serialization streaming.
-- `ObjectMapper` (SF 7.3) -- no native DTO <-> entity mapping.
-- `ExistsFilter` native AP -- no Propel equivalent (partially addressable with `BooleanFilter`).
-- `NumericFilter` native AP -- not ported (partially covered by `RangeFilter`).
+- `QueryParameter` system (AP 4.1+): use `#[ApiFilter]` instead.
+- `Metadata Mutators` (AP 4.2+): no API for modifying resource metadata.
+- `JsonStreamer` (AP 4.2 / SF 7.3): no serialization streaming.
+- `ObjectMapper` (SF 7.3): no native DTO <-> entity mapping.
+- `ExistsFilter` native AP: no Propel equivalent (partially addressable with `BooleanFilter`).
+- `NumericFilter` native AP: not ported (partially covered by `RangeFilter`).
 - **Native Doctrine AP filters** (`ApiPlatform\Doctrine\*Filter`): INCOMPATIBLE on Propel resources (Doctrine QueryBuilder != Propel ModelCriteria) -> runtime crash. **Block in review.**
 
 ## 3. 5 Propel Bridge decorators
@@ -34,12 +34,12 @@
 
 ## 4. Pivot interfaces / classes
 
-- **`PropelResourceInterface`** (`Api/Resource/PropelResourceInterface.php:19`): contract `setPropelModel/getPropelModel/getResourceAddons/getPropelRelatedTableMap` static. **No `getId()` in the interface** -- convention per resource.
+- **`PropelResourceInterface`** (`Api/Resource/PropelResourceInterface.php:19`): contract `setPropelModel/getPropelModel/getResourceAddons/getPropelRelatedTableMap` static. **No `getId()` in the interface**; it is a convention per resource.
 - **`PropelResourceTrait`** (`Api/Resource/PropelResourceTrait.php`): default implementation. **Always `use PropelResourceTrait`** otherwise `__get()` is missing -> `NoSuchPropertyException` on addons.
 - **`AbstractTranslatableResource`** (`Api/Resource/AbstractTranslatableResource.php:15`): extends `PropelResourceInterface, TranslatableResourceInterface`, embeds `I18nCollection $i18ns`. Concrete I18n classes (`CategoryI18n`, `BrandI18n`, `ProductI18n`, `FolderI18n`, `ContentI18n`, `ModuleConfigI18n`) `extends I18n`.
 - **`ResourceAddonInterface`** (`Api/Resource/ResourceAddonInterface.php`): pattern for extending a native resource from a module.
 
-## 4bis. CRITICAL PITFALL -- Folder `Api/Resource/` (not `Resource/`)
+## 4bis. CRITICAL PITFALL: Folder `Api/Resource/` (not `Resource/`)
 
 The AP bridge scans **only** `{module}/Api/Resource/` (exact case, `services.php:88` -> `$module->getAbsoluteBaseDir().'/Api/Resource'`). A class placed in `{module}/Resource/` (without `Api/` prefix):
 
@@ -135,7 +135,7 @@ final class CustomProductData implements ResourceAddonInterface
 
 Auto-tagged via `registerForAutoconfiguration(ResourceAddonInterface::class)` -> tag `thelia.api.resource.addon` -> `RegisterApiResourceAddonPass` (`Compiler/RegisterApiResourceAddonPass.php:35`) collects into param `Thelia.api.resource.addons[Product::class]['CustomProductData'] = CustomProductData::class`.
 
-## 7. Propel Bridge attributes -- signatures + 5 real examples
+## 7. Propel Bridge attributes: signatures + 5 real examples
 
 ```php
 #[\Attribute(\Attribute::TARGET_PROPERTY)]
@@ -150,14 +150,14 @@ class CompositeIdentifiers { __construct(array $keys) }
 
 **Note**: all properties of the 3 attributes are `private`. Read via Reflection (`$attribute->newInstance()`).
 
-### Example 1 -- simple `#[Relation]` (`AttributeAv.php:91`)
+### Example 1: simple `#[Relation]` (`AttributeAv.php:91`)
 
 ```php
 #[Relation(targetResource: Attribute::class)]
 public Attribute $attribute;
 ```
 
-### Example 2 -- `#[Relation]` with `relationAlias` for ambiguous FK (`Order.php:190`)
+### Example 2: `#[Relation]` with `relationAlias` for ambiguous FK (`Order.php:190`)
 
 ```php
 #[Relation(targetResource: OrderAddress::class, relationAlias: 'OrderAddressRelatedByInvoiceOrderAddressId')]
@@ -165,7 +165,7 @@ public Attribute $attribute;
 public OrderAddress $invoiceOrderAddress;
 ```
 
-### Example 3 -- `#[Column(propelFieldName:)]` for collection (`Product.php:181`)
+### Example 3: `#[Column(propelFieldName:)]` for collection (`Product.php:181`)
 
 ```php
 #[Column(propelFieldName: 'productSaleElementss')]
@@ -173,7 +173,7 @@ public OrderAddress $invoiceOrderAddress;
 public array $productSaleElements;
 ```
 
-### Example 4 -- `#[CompositeIdentifiers]` junction table (`AttributeCombination.php:42`)
+### Example 4: `#[CompositeIdentifiers]` junction table (`AttributeCombination.php:42`)
 
 ```php
 #[CompositeIdentifiers(['productSaleElements', 'attributeAv', 'attribute'])]
@@ -182,7 +182,7 @@ class AttributeCombination implements PropelResourceInterface
 
 URI: `/admin/attribute_combinations/{productSaleElements}/attribute_av/{attributeAv}`. All identifiers must have `getId()`, otherwise IRI is silently `'undefined_iri'` (SIGNAL-11).
 
-### Example 5 -- `#[Column(propelSetter)]` for writing FK directly (`Customer.php:118-126`)
+### Example 5: `#[Column(propelSetter)]` for writing FK directly (`Customer.php:118-126`)
 
 ```php
 #[Relation(targetResource: CustomerTitle::class)]
@@ -202,13 +202,13 @@ Auto-tagged: `FilterInterface` (Thelia, `Bridge/Propel/Filter/FilterInterface.ph
 | `BooleanFilter` | `filter_var FILTER_VALIDATE_BOOLEAN` | `#[ApiFilter(BooleanFilter::class, properties: ['visible'])]` |
 | `DateFilter` | `before/strictly_before/after/strictly_after` + null strategies (EXCLUDE_NULL, INCLUDE_NULL_BEFORE, etc.) | `#[ApiFilter(DateFilter::class, properties: ['createdAt' => DateFilter::INCLUDE_NULL_BEFORE_AND_AFTER])]` |
 | `RangeFilter` | `gt/gte/lt/lte` | `#[ApiFilter(RangeFilter::class, properties: ['discount'])]` |
-| `NotInFilter` | `?not_in[prop][]=v1&not_in[prop][]=v2` | `#[ApiFilter(NotInFilter::class, properties: ['id', 'ref'])]` -- **does not support nested relations** |
+| `NotInFilter` | `?not_in[prop][]=v1&not_in[prop][]=v2` | `#[ApiFilter(NotInFilter::class, properties: ['id', 'ref'])]` (does not support nested relations) |
 
 **BLOCK IN REVIEW**: `ApiPlatform\Doctrine\*Filter` on Propel resource -> runtime crash.
 
 ### PITFALL: `#[ApiFilter]` scope at class vs operation level
 
-An `#[ApiFilter]` declared at the **class** level applies to **all operations of all stacks** (admin AND front) without distinction. On a resource exposed to both stacks, declaring `#[ApiFilter(SearchFilter::class, properties: ['status'])]` at class level exposes the filter to `/api/front/...?status=rejected` -- an anonymous visitor can then read records with `rejected` or `pending` status that the front collection intended to hide.
+An `#[ApiFilter]` declared at the **class** level applies to **all operations of all stacks** (admin AND front) without distinction. On a resource exposed to both stacks, declaring `#[ApiFilter(SearchFilter::class, properties: ['status'])]` at class level exposes the filter to `/api/front/...?status=rejected`; an anonymous visitor can then read records with `rejected` or `pending` status that the front collection intended to hide.
 
 **Always scope sensitive filters**:
 
@@ -240,13 +240,13 @@ final readonly class ApprovedReviewCollectionExtension implements QueryCollectio
 }
 ```
 
-This pattern is identical in T3 -- the class-vs-operation scope is an AP feature, not Thelia-specific.
+This pattern is identical in T3; the class-vs-operation scope is an AP feature, not Thelia-specific.
 
 ## 9. Security
 
 ### Firewalls (`Thelia.php:647-712`)
 
-Firewalls are declared **programmatically by Reflection** on `ContainerBuilder.extensionConfigs` -- the project's security.yaml is empty / supplementary (SIGNAL-12).
+Firewalls are declared **programmatically by Reflection** on `ContainerBuilder.extensionConfigs`; the project's security.yaml is empty / supplementary (SIGNAL-12).
 
 4 firewalls:
 - `frontLogin` (`^/api/front/login`)
@@ -263,14 +263,14 @@ Providers:
 
 - RSA keys via `JWT_SECRET_KEY` / `JWT_PUBLIC_KEY` / `JWT_PASSPHRASE`
 - `JwtListener` adds claim `type` = model FQCN (`Thelia\Model\Customer` or `Thelia\Model\Admin`)
-- **No refresh token** -- `gesdinet/jwt-refresh-token-bundle` absent from composer.json (SIGNAL-10)
+- **No refresh token**: `gesdinet/jwt-refresh-token-bundle` absent from composer.json (SIGNAL-10)
 - Endpoints: `POST /api/front/login`, `POST /api/admin/login` JSON body `{username, password}`
 
 ### URL conventions
 
-- Admin: `/admin/{resource}` -- `ROLE_ADMIN`
-- Public front: `/front/{resource}` -- no auth
-- Customer account front: `/front/account/{resource}` -- `ROLE_CUSTOMER`
+- Admin: `/admin/{resource}`, requires `ROLE_ADMIN`
+- Public front: `/front/{resource}`, no auth
+- Customer account front: `/front/account/{resource}`, requires `ROLE_CUSTOMER`
 
 ### `security:` expressions per resource (excerpts)
 
@@ -298,7 +298,7 @@ Cross-resource: to expose Category in a Product single, add `Product::GROUP_ADMI
 
 ### PITFALL: global `normalizationContext` ignores `_SINGLE`
 
-The `normalizationContext` declared at the `#[ApiResource]` level applies to ALL operations. To expose additional fields only on `Get` single (`GROUP_*_READ_SINGLE`), explicitly override the context of the `Get` operation:
+The `normalizationContext` declared at the `#[ApiResource]` level applies to ALL operations. To expose additional fields only on `Get` single (`GROUP_*_READ_SINGLE`), override the context of the `Get` operation explicitly:
 
 ```php
 new Get(
@@ -307,9 +307,9 @@ new Get(
 ),
 ```
 
-Without this override, fields annotated only with `GROUP_*_READ_SINGLE` never appear -- silent behavior. Native core pattern: see `Product.php:50`.
+Without this override, fields annotated only with `GROUP_*_READ_SINGLE` never appear. Silent behavior. Native core pattern: see `Product.php:50`.
 
-Symmetrically: do not declare a group (`GROUP_ADMIN_WRITE`, `GROUP_*_READ_SINGLE`) if no operation activates it -- dead code that misleads about the API surface.
+Symmetrically: do not declare a group (`GROUP_ADMIN_WRITE`, `GROUP_*_READ_SINGLE`) if no operation activates it. Dead code that misleads about the API surface.
 
 ### Post-denormalize FK validation
 
@@ -342,11 +342,11 @@ Otherwise the protection only exists in the Processor (procedural, not testable,
 
 Injection: `PropelResourceCollectionMetadataFactory` automatically injects the correct provider/processor for any resource implementing `PropelResourceInterface`. **No manual declaration needed.**
 
-## 12. IDOR / BOLA -- security rules (SIGNAL-08, SIGNAL-09)
+## 12. IDOR / BOLA: security rules (SIGNAL-08, SIGNAL-09)
 
 ### Front POST with owner field
 
-**Every front creation operation that contains a `customerId` (or owner field) must verify ownership manually.** The T2.6 core has this hole on `POST /api/front/account/addresses` (`Address.php:62`) -- an authenticated customer can create an address with another customer's `customerId`.
+**Every front creation operation that contains a `customerId` (or owner field) must verify ownership manually.** The T2.6 core has this hole on `POST /api/front/account/addresses` (`Address.php:62`): an authenticated customer can create an address with another customer's `customerId`.
 
 Recommendation for any module adding a front POST:
 
@@ -367,7 +367,7 @@ if ($data->customerId !== $user->getId()) {
 
 ### Front GetCollection
 
-Front GetCollection for Order/Address carries **no** `security:` expression -- protection relies entirely on `CustomerGetCollectionExtension` (`Bridge/Propel/Extension/CustomerGetCollectionExtension.php`) which adds a `filterByCustomer($user)` if the query exposes that filter. If the extension is disabled or bypassed by a module, the full collection becomes accessible. Recommendation: add a minimal `security: 'is_granted("ROLE_CUSTOMER")'` expression on front operations.
+Front GetCollection for Order/Address carries **no** `security:` expression; protection relies entirely on `CustomerGetCollectionExtension` (`Bridge/Propel/Extension/CustomerGetCollectionExtension.php`) which adds a `filterByCustomer($user)` if the query exposes that filter. If the extension is disabled or bypassed by a module, the full collection becomes accessible. Recommendation: add a minimal `security: 'is_granted("ROLE_CUSTOMER")'` expression on front operations.
 
 ## 13. Native resource inventory (~96)
 
@@ -384,13 +384,13 @@ Front GetCollection for Order/Address carries **no** `security:` expression -- p
 
 ## 14. API pitfalls
 
-1. **Folder `Resource/` instead of `Api/Resource/`** -- resource silently absent from AP bridge, no endpoint, no error (`services.php:88`). Always `{Module}\Api\Resource` with matching namespace.
-2. **Global `normalizationContext`** -- `_READ_SINGLE` groups never appear on `Get` single without operation override (see section 10).
+1. **Folder `Resource/` instead of `Api/Resource/`**: resource silently absent from AP bridge, no endpoint, no error (`services.php:88`). Always `{Module}\Api\Resource` with matching namespace.
+2. **Global `normalizationContext`**: `_READ_SINGLE` groups never appear on `Get` single without operation override (see section 10).
 3. Native Doctrine AP filters on Propel resource -> crash (always)
 4. `IriConverter` returns `'undefined_iri'` instead of exception on badly mapped composite (SIGNAL-11)
-5. `getPropelRelatedTableMap()` returns null -> `PropelCollectionProvider` NPE -- always return `XxxTableMap::getTableMap()`
+5. `getPropelRelatedTableMap()` returns null -> `PropelCollectionProvider` NPE; always return `XxxTableMap::getTableMap()`
 6. `PropelResourceTrait` not `use`d -> `NoSuchPropertyException` on addons
-7. No JWT refresh -- expired token = forced re-login (SIGNAL-10)
-8. Single format JSON-LD -- any extension requesting `application/json` returns 406
+7. No JWT refresh; expired token forces re-login (SIGNAL-10)
+8. Single format JSON-LD; any client requesting `application/json` receives 406
 9. Group declared without associated operation = dead code (`GROUP_ADMIN_WRITE` without `Post`/`Put`)
 10. FK in write without post-denormalize validation -> Propel `500` instead of a clean `422`

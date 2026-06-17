@@ -1,4 +1,4 @@
-# Thelia 2.6 -- Tests: reality and patterns
+# Thelia 2.6: Tests: reality and patterns
 
 > Source: `tests/`, `phpunit.xml.dist`, `tests/Functional/WebTestCase.php:25`. **WARNING**: T2.6 has NO `IntegrationTestCase`, NO `ApiTestCase`, NO `FixtureFactory`, NO isolated test DB. Testing a module means building your own harness.
 
@@ -161,7 +161,7 @@ abstract class TheliaIntegrationTestCase extends TestCase
 }
 ```
 
-## 6bis. Testing a `final readonly` -- NEVER extend
+## 6bis. Testing a `final readonly`: NEVER extend
 
 A `final readonly` class (typical of well-structured repositories) cannot be extended. PHP 8.3 raises `Fatal error: Class Foo cannot extend final class Bar`. Anonymous stub `new class extends FinalRepository {}` = test dead on load.
 
@@ -175,7 +175,7 @@ $stub = new class extends ZoneRepository {
 
 **Valid patterns**:
 
-### Option 1 -- Extract an interface (recommended)
+### Option 1: Extract an interface (recommended)
 
 ```php
 interface ZoneRepositoryInterface {
@@ -189,7 +189,7 @@ $mock = $this->createMock(ZoneRepositoryInterface::class);
 $mock->method('findOneByCode')->willReturn($fakeZone);
 ```
 
-### Option 2 -- Reflection to test a contract
+### Option 2: Reflection to test a contract
 
 When you want to test without booting the kernel:
 
@@ -210,7 +210,7 @@ public function testListenerIsWiredToCorrectEvent(): void
 }
 ```
 
-### Option 3 -- Integration test with real kernel + transaction rollback
+### Option 3: Integration test with real kernel + transaction rollback
 
 For tests that need the concrete repository, boot the kernel and use the real service (see section 4). The Propel transaction rollback in tearDown guarantees isolation.
 
@@ -221,13 +221,13 @@ Defensible but **not recommended**: you lose immutability and non-inheritance gu
 ## 7. Test pitfalls
 
 1. No DB isolation -> tests permanently pollute dev DB (SIGNAL-15)
-2. `tests/Legacy/` ignored by phpunit.xml.dist -- NEVER add new tests there (SIGNAL-14)
-3. `URL::$instance` singleton not initialized -> NPE -- always set up in bootstrap
-4. `Translator::$instance` singleton not initialized -> RuntimeException -- same
-5. `WebTestCase::createClient()` does not reset the Kernel between tests -- env mocks potentially contaminated
-6. No `KERNEL_BROWSER` cleanup between tests -- each test = new client
+2. `tests/Legacy/` ignored by phpunit.xml.dist; NEVER add new tests there (SIGNAL-14)
+3. `URL::$instance` singleton not initialized -> NPE; always set up in bootstrap
+4. `Translator::$instance` singleton not initialized -> RuntimeException; same rule applies
+5. `WebTestCase::createClient()` does not reset the Kernel between tests; env mocks potentially contaminated
+6. No `KERNEL_BROWSER` cleanup between tests; each test needs a new client
 7. **Anonymous stub `extends FinalReadonlyRepository`** = fatal PHP 8.3, entire test suite non-executable. Use interface + mock OR Reflection (see section 6bis).
-8. `ReflectionClass::isReadOnly()` requires PHP 8.2+ -- absent in 8.1. For multi-version CI: `@requires PHP 8.2` or `method_exists($reflection, 'isReadOnly')`.
+8. `ReflectionClass::isReadOnly()` requires PHP 8.2+, absent in 8.1. For multi-version CI: `@requires PHP 8.2` or `method_exists($reflection, 'isReadOnly')`.
 
 ## 8. Against `tests/Legacy/`
 
