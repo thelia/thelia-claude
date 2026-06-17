@@ -3,46 +3,65 @@
 #
 # Shared content must be useful to any Thelia developer in any future session,
 # and free of session-specific or personal detail. This script fails (exit 1)
-# if it finds contamination in the content that actually ships in the plugin.
+# if it finds contamination in the content that ships in the plugin (the
+# `plugins/` and `.claude-plugin/` trees).
+#
+# It checks two layers, so this script itself stays neutral and publishable:
+#   1. Generic patterns below. They name no person, company, or private setup.
+#   2. Optional project denylist patterns supplied from outside this file:
+#        - the NEUTRALITY_EXTRA_PATTERNS environment variable (one regex per line)
+#        - a local, git-ignored file: .neutrality-denylist.local (one regex per line)
+#      Maintainers keep their own name, organization, private commands, and
+#      ticket prefixes there. None of that belongs in this committed script.
 #
 # Run locally before opening a pull request:  bash scripts/check-neutrality.sh
 
 set -uo pipefail
 
-# Only the installable artifacts are scanned. Repo meta (README, CONTRIBUTING,
-# this script) may legitimately describe the patterns below.
 ROOTS=("plugins" ".claude-plugin")
 
-PATTERNS=(
-  '/home/|/Users/|~/\.claude'
-  'Alexandre|anoziere|[Oo]pen[Ss]tudio'
-  '\bESN\b'
-  '/os-(feature|init|review|setup-project)\b'
+# Generic, identity-free contamination patterns (extended regex).
+GENERIC_PATTERNS=(
+  '/home/|/Users/'
+  '~/\.claude|\.claude/projects/'
   '\[\[[A-Za-z0-9_-]+\]\]'
-  '\b(PAR|B)-[0-9]{2,}\b'
+)
+GENERIC_DESCRIPTIONS=(
+  "absolute or personal home paths"
+  "personal Claude config or memory paths"
+  "private memory cross-links"
 )
 
-DESCRIPTIONS=(
-  "absolute or personal filesystem paths"
-  "personal or organization names"
-  "internal ESN references"
-  "coupling to private /os-* commands"
-  "private memory cross-links"
-  "internal backlog references (PAR-/B-)"
-)
+# Optional project-specific denylist, loaded from outside this script.
+EXTRA_PATTERNS=()
+add_extra() { [ -n "$1" ] && [[ "$1" != \#* ]] && EXTRA_PATTERNS+=("$1"); }
+if [ -n "${NEUTRALITY_EXTRA_PATTERNS:-}" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do add_extra "$line"; done <<< "${NEUTRALITY_EXTRA_PATTERNS}"
+fi
+if [ -f ".neutrality-denylist.local" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do add_extra "$line"; done < ".neutrality-denylist.local"
+fi
 
 fail=0
-for root in "${ROOTS[@]}"; do
-  [ -e "$root" ] || continue
-  for i in "${!PATTERNS[@]}"; do
-    hits=$(grep -rnIE "${PATTERNS[$i]}" "$root" 2>/dev/null) || true
+scan() { # $1 pattern, $2 description
+  local hits
+  for root in "${ROOTS[@]}"; do
+    [ -e "$root" ] || continue
+    hits=$(grep -rnIE "$1" "$root" 2>/dev/null) || true
     if [ -n "$hits" ]; then
-      echo "FAIL — ${DESCRIPTIONS[$i]}:"
+      echo "FAIL — $2:"
       echo "$hits"
       echo
       fail=1
     fi
   done
+}
+
+for i in "${!GENERIC_PATTERNS[@]}"; do
+  scan "${GENERIC_PATTERNS[$i]}" "${GENERIC_DESCRIPTIONS[$i]}"
+done
+for pat in "${EXTRA_PATTERNS[@]}"; do
+  scan "$pat" "project-specific denylist match"
 done
 
 if [ "$fail" -ne 0 ]; then

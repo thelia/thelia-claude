@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check shared content is neutral
+        env:
+          NEUTRALITY_EXTRA_PATTERNS: ${{ vars.NEUTRALITY_DENYLIST }}
         run: bash scripts/check-neutrality.sh
 
   manifests:

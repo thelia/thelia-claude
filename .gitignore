@@ -1,3 +1,6 @@
 .DS_Store
 *.log
 node_modules/
+
+# Local, project-specific neutrality denylist (names, org, private commands)
+.neutrality-denylist.local

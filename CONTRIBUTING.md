@@ -22,6 +22,8 @@ A CI check (`scripts/check-neutrality.sh`) fails the build on these. It scans `p
 - Links to a private memory store
 - Coupling to private slash commands or a personal model-routing strategy
 
+The check keeps its own patterns generic, so the script itself stays neutral. Project-specific identifiers (a maintainer's name, the organization, private commands, ticket prefixes) come from outside the script: a git-ignored `.neutrality-denylist.local` for local runs, and the `NEUTRALITY_DENYLIST` repository variable for CI. Add yours there, never in the script.
+
 Three more the check cannot catch, so watch for them yourself:
 
 - Dates and session markers. A skill is a fact, not a journal. An example date inside code or a changelog template is fine; a date that records when you did something is not.
