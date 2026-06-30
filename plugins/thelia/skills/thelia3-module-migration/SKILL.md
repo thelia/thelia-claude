@@ -77,6 +77,17 @@ Keep in config.xml if still needed:
 
 Front interactivity: move manual JS to LiveComponent or Stimulus controllers.
 
+### Back-office forms
+
+For a module's back-office (default-twig) screens, render forms with the standard Symfony helpers (`form_row`, `form_widget`, `form_label`) rather than hand-built `<input name="{{ form.vars.full_name }}[field]">` with a manual `{{ form._token.vars.value }}`. Theme each form root explicitly:
+
+```twig
+{% form_theme form with bo_form_themes only %}
+{{ form_start(form) }}
+```
+
+`bo_form_themes` is a Twig global provided by the default-twig back-office (`['bootstrap_5_layout.html.twig', '@BackOfficeDefaultTwigForm/bo_form_theme.html.twig']`). The `only` keyword keeps the global front-office Flexy theme out, so the form renders as Bootstrap and never picks up a Flexy `FieldInput` widget. Put the tag inside the rendered block, before `form_start`. Do not pass a single theme with `only` (it 500s on `form_start`); always go through `bo_form_themes`. See the `thelia3-backoffice-twig` skill for the full rationale.
+
 ---
 
 ## 5. Loop to API Resource
