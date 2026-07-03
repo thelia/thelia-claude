@@ -17,6 +17,7 @@ description: "Migrating a Thelia 2 module to Thelia 3 (twig branch, Symfony 7.4 
 | Front templates | Smarty `.html` | **Twig `.html.twig`** (Flexy) | Full template rewrite |
 | Front data | `{loop}` Smarty | `resources('/api/front/...')` | Internal API Platform call |
 | Front interactivity | Hooks + manual JS | **LiveComponents + Stimulus** | Reactive components |
+| Front HTML injection | `{hook}` Smarty | **Theme hooks** (`ThemeHookInterface` + `theme_hook()`) | Pure code, the theme declares the points |
 | Back-office | Smarty + XML hooks | **Smarty + auto-tag hooks** | XML hook declarations become optional |
 | DI | `<services>` in config.xml | `configureServices()` PHP | Modern, autoconfigure |
 | Routes | routing.xml | `#[Route]` PHP 8 | Auto-scanned from `Controller/` |
@@ -70,7 +71,7 @@ Keep in config.xml if still needed:
 | `{$smarty.const.URL}` / `{path()}` | `{{ path('route_id') }}` |
 | `{intl l='Hello'}` | `{{ 'Hello'\|trans({}, 'mymodule') }}` |
 | `{form name="thelia.customer.login"}` | `{% set form = getForm('thelia.customer.login') %}{{ form_start(form) }}` |
-| `{hook name="product.top" product=$product}` | Back-office only. Front-office has no hooks. |
+| `{hook name="product.top" product=$product}` | Front: implement `Thelia\Core\Hook\Theme\ThemeHookInterface` answering a point the theme declares (Flexy: `theme_hook('product.top', {product: product})`). BO: `BaseHook` unchanged. |
 | `{include file="..."}` | `{% include '@components/...' %}` |
 | `{assign var=...}` | `{% set ... %}` |
 | Complex conditional loop | `{% if %}{% else %}{% endif %}`, Twig filters |

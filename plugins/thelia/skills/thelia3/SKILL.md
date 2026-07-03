@@ -1,6 +1,6 @@
 ---
 name: thelia3
-description: "Thelia 3 e-commerce framework (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, twig branch, TheliaKernel, BaseModule, configureServices, BaseHook, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
+description: "Thelia 3 e-commerce framework (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), front theme hooks (theme_hook() Twig function + ThemeHookInterface), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, twig branch, TheliaKernel, BaseModule, configureServices, BaseHook, theme_hook, ThemeHookInterface, theme hooks, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
 ---
 
 # Thelia 3 - Module Development Guide
@@ -36,6 +36,7 @@ description: "Thelia 3 e-commerce framework (twig branch, Symfony 7.4 LTS, API P
 | REST API form (modern) | DTO + `#[MapRequestPayload]` + Validator (to adopt) | code-patterns.md |
 | Listen to a Thelia event | class + static `EventSubscriberInterface` | hooks.md |
 | Back-office hook | `extends BaseHook` + `getSubscribedHooks()` (AUTO-tagged, NO XML) | hooks.md |
+| Inject HTML in the front theme | implement `ThemeHookInterface` (AUTO-tagged `thelia.theme_hook`), theme declares points via `theme_hook()` | hooks.md |
 | Legacy loop | `extends BaseLoop` (AUTO-tagged, snake_case auto, `@deprecated`) | hooks.md |
 | Propel query or third-party API call in a controller/listener/component | NEVER inline - always via Repository / ApiClient with business-named methods | code-patterns.md §9 |
 | Manipulate the cart | inject `CartFacade` (NOT `CartItemService`) | front-office.md |
@@ -142,7 +143,7 @@ final class MyModule extends BaseModule
 
 ### 3.3 Flexy front and Symfony UX
 - `#[AsLiveComponent]` (interactive Ajax) or `#[AsTwigComponent]` (static).
-- Twig: `resources('/api/front/...')`, `attr('product', 'id')`, `getForm(name)`, `hook(name)`, `path(routeId)`.
+- Twig: `resources('/api/front/...')`, `attr('product', 'id')`, `getForm(name)`, `hook(name)`, `theme_hook(name, params)`, `path(routeId)`.
 - Facades in LiveComponents: `CartFacade`, `CustomerFacade`, `OrderFacade`, `CheckoutFacade`.
 - Template overrides: place in `{module}/templates/frontOffice/flexy/`.
 - Assets: Webpack Encore + Tailwind. Turbo/Mercure are ABSENT.
@@ -151,6 +152,7 @@ final class MyModule extends BaseModule
 ### 3.4 Events and back-office extensions
 - Listeners: `EventSubscriberInterface` (dominant in core) or `#[AsEventListener]` (to adopt when appropriate).
 - Back-office hooks: `extends BaseHook` + `getSubscribedHooks()` -> **AUTO-tagged, NO `<hooks>` declaration required**.
+- Front theme hooks: implement `ThemeHookInterface` -> AUTO-tagged `thelia.theme_hook`; the theme declares its points with `theme_hook('page.zone.position')` (Flexy: 20 points, primary use SEO/analytics). Pure code, no DB, no admin.
 - Legacy loops: `extends BaseLoop` -> AUTO-tagged, snake_case auto. `BaseLoop` is `@deprecated` - prefer API Resources.
 - Back-office hook templates are Twig in the default-twig theme. See the `thelia3-backoffice-twig` skill for back-office theming, hooks, i18n, and forms.
 - Details: [references/hooks.md](references/hooks.md)
@@ -277,6 +279,7 @@ When working on a module, these patterns are more modern but not yet standard Th
 - `Thelia\Core\Translation\Translator` - alias of `TranslatorInterface`, default domain `core`, fallback = raw key; distinct from Symfony `translator` (Twig `|trans`, domain `messages`)
 - `Lang::getDefaultLanguage()` - store default language (not equal to `$request->getLocale()`)
 - `BaseHook` / `BaseHookInterface` / `getSubscribedHooks()` - back-office hooks auto-tagged
+- `ThemeHookInterface` / tag `thelia.theme_hook` / Twig `theme_hook()` - front theme hooks auto-tagged (renderer in TwigEngine)
 - `RegisterHookListenersPass` / `LoopCompilerPass` / `RegisterFormPass` - auto-discovery passes
 - `router.admin` / `router.front` / `ModuleAttributeLoader` / `RewritingRouter` - chain routers
 - `IntegrationTestCase` / `WebIntegrationTestCase` / `ApiTestCase` / `ActionIntegrationTestCase` / `FixtureFactory`
@@ -287,7 +290,7 @@ When working on a module, these patterns are more modern but not yet standard Th
 - [references/modules.md](references/modules.md) - Skeleton, configureServices, lifecycle, Propel persistence, i18n, Composer distribution
 - [references/api-integration.md](references/api-integration.md) - AP 4.3, resources, addons, filters, security, DAS, providers/processors
 - [references/front-office.md](references/front-office.md) - Flexy, LiveComponents, TwigComponents, Stimulus, facades, assets, template overrides
-- [references/hooks.md](references/hooks.md) - Thelia events, listeners, back-office hooks auto-tagged, loops auto-tagged
+- [references/hooks.md](references/hooks.md) - Thelia events, listeners, back-office hooks auto-tagged, front theme hooks (`theme_hook()`), loops auto-tagged
 - [references/code-patterns.md](references/code-patterns.md) - Forms (BaseForm + API DTO), `#[AsCommand]` commands, services
 - [references/testing.md](references/testing.md) - Test strategy + FixtureFactory + ApiTestCase
 - [references/payment-delivery.md](references/payment-delivery.md) - Typed payment / delivery modules
