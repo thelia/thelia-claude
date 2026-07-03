@@ -42,7 +42,8 @@ Extensions from TwigEngine (`vendor/thelia/modules/TwigEngine/Extension/`):
 | Function | Extension | Use |
 |---|---|---|
 | `getForm(name, data)` | `FormExtension` | `FormView` of a Thelia form |
-| `hook(name, params)` | `HookExtension` | Execute a hook (mainly BO) |
+| `hook(name, params)` | `HookExtension` | Execute a legacy hook (BO/email/PDF bridge) |
+| `theme_hook(name, params)` | `ThemeHookExtension` | Render a theme extension point (modules answer via `ThemeHookInterface`, see hooks.md) |
 | `path(routeId, params)` | `URLExtension` | URL (Thelia + SF routes) |
 | `isAuthenticated()`, `isAuthenticatedFront()`, `isAuthenticatedAdmin()` | `SecurityExtension` | Auth guards |
 | `assertAuth(...)`, `assertCartNotEmpty()`, `assertValidDelivery()` | `SecurityExtension` | Guards (throw if KO) |

@@ -1,6 +1,6 @@
 # Events and back-office extensions - Thelia 3
 
-> Symfony listeners + back-office hooks (Smarty) + legacy loops. Everything is auto-tagged from `BaseHookInterface` / `LoopInterface` / `EventSubscriberInterface` - NO XML declaration required.
+> Symfony listeners + back-office hooks (Smarty) + front theme hooks (Twig) + legacy loops. Everything is auto-tagged from `BaseHookInterface` / `ThemeHookInterface` / `LoopInterface` / `EventSubscriberInterface` - NO XML declaration required.
 
 ## 1. `TheliaEvents`
 
@@ -240,8 +240,11 @@ BO hooks are strings registered dynamically in the DB via `getHooks()` from modu
 # Hooks placed in BO templates (Smarty)
 grep -rn '{hook name="' templates/backOffice/default/ | sed -E 's/.*hook name="([^"]+)".*/\1/' | sort -u
 
-# Hooks placed in front templates (Twig)
+# Legacy hooks placed in front templates (Twig)
 grep -rn 'hook(' templates/frontOffice/flexy/ | grep -E "hook\('([^']+)'" | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
+
+# Theme hook points declared by the front theme (see section 4)
+grep -rhoE "theme_hook\('[^']+'" templates/frontOffice/flexy/ | sort -u
 
 # Active hooks in DB
 ddev exec mysql -udb -pdb thelia -e "SELECT code, type FROM hook WHERE activate=1 ORDER BY type, code;"
@@ -249,7 +252,51 @@ ddev exec mysql -udb -pdb thelia -e "SELECT code, type FROM hook WHERE activate=
 
 Inventing a hook code (e.g. `customer.tab-content`) that does not exist = listener silently inactive. Always verify a hook exists before attaching code to it.
 
-## 4. Loops - AUTO-DISCOVERY (DEPRECATED)
+## 4. Front theme hooks - `theme_hook()` + `ThemeHookInterface`
+
+Front themes declare extension points in Twig; modules answer them in pure code. No database rows, no admin screen, no relation to the legacy `hook()` system (which stays for BO/email/PDF).
+
+Theme side (Flexy declares 20 points, convention `page.zone.position`):
+
+```twig
+{{ theme_hook('layout.head') }}
+{{ theme_hook('product.details.bottom', {product: product}) }}
+```
+
+Module side - implement the interface, done (tag `thelia.theme_hook` autoconfigured):
+
+```php
+namespace MyModule\Hook\Theme;
+
+use Thelia\Core\Hook\Theme\ThemeHookInterface;
+use Twig\Environment;
+
+final readonly class MyThemeHook implements ThemeHookInterface
+{
+    public function __construct(private Environment $twig) {}
+
+    public function supports(string $hookName): bool
+    {
+        return 'layout.header.bottom' === $hookName;
+    }
+
+    public function render(string $hookName, array $parameters): string
+    {
+        return $this->twig->render('@MyModuleModule/theme-hook/banner.html.twig');
+    }
+}
+```
+
+Key facts:
+- Rendered by `TwigEngine\Service\ThemeHookRenderer` (`#[AutowireIterator('thelia.theme_hook')]`): all supporting handlers concatenated, order = tag priority (`#[AutoconfigureTag('thelia.theme_hook', ['priority' => 100])]` renders first).
+- Error isolation per handler: rethrow in debug, log + skip in prod.
+- Return `''` when there is nothing to show (module installed but not configured).
+- One handler can answer several points (`supports()` with `in_array`, `match` in `render()`).
+- Layout points pass NO parameters - inject `RequestStack` to know the current page (SEO/analytics modules).
+- Flexy points: `layout.head`, `layout.body.top`, `layout.header.bottom`, `layout.footer.top`, `layout.body.bottom`, then `home|product|category|cart|checkout|account|order-placed` `.top`/`.bottom` plus `product.details.bottom`. Primary use case: SEO / JS analytics (`layout.head` for meta/JSON-LD/GTM script, `layout.body.top` for the GTM noscript).
+- `final readonly class` works here (constructor DI, unlike `BaseHook`).
+
+## 5. Loops - AUTO-DISCOVERY (DEPRECATED)
 
 `LoopInterface` auto-configured (`TheliaKernel.php:492-495`):
 ```php
@@ -288,20 +335,21 @@ class ProductLoop extends BaseLoop implements PropelSearchLoopInterface
 
 For all new front development: **API Resources + `resources()`** or **LiveComponent + `DataAccessService`**.
 
-## 5. Back-office forms - AUTO-DISCOVERY
+## 6. Back-office forms - AUTO-DISCOVERY
 
 `FormInterface` (Thelia, distinct from SF) auto-configured (`TheliaKernel.php:497-500`) tag `thelia.form`. `RegisterFormPass` reads `getName()` static and populates `Thelia.parser.forms`.
 
 `<forms>` in `config.xml` is **NEVER required** if the form extends `BaseForm` and is in an autoconfigured namespace. See `code-patterns.md`.
 
-## 6. Traps
+## 7. Traps
 
 | Trap | Fix |
 |---|---|
 | `getModuleCode()` != first FQCN segment | folder = class = FQCN root |
 | `RegisterHookListenersPass` DB query at compile time | DB must be available at cache warmup |
 | `getSubscribedHooks()` not static | must be static (`RegisterHookListenersPass:71`) |
-| Front hook in Twig (T2 reflex) | not possible - BO hooks Smarty only, front = LiveComponents |
+| Front hook via `BaseHook`/`getSubscribedHooks()` (T2 reflex) | front = theme hooks (`ThemeHookInterface` + `theme_hook()`), `BaseHook` is BO/email/PDF only |
+| Inventing a theme hook name in a module | the THEME declares the points - check `theme_hook(` calls in the active theme first |
 | `EventSubscriberInterface` but service not public | autoconfigure makes it public automatically, or `setPublic(true)` |
 | `BaseLoop` for new development | prefer API Resources + `resources()` |
 | Duplicate `<hooks>` in config.xml + `getSubscribedHooks()` | remove `<hooks>` from XML |
