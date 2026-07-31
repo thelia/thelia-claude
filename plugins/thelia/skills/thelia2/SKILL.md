@@ -223,7 +223,7 @@ Access from `BaseModule`: `$this->getContainer()` (`L143`), `$this->getRequest()
 ### 4.4 Smarty back-office
 - Theme `default`; module override in `{module}/templates/backOffice/default/...`.
 - 8-10 native BO hooks (`main.head-css`, `main.before-topbar`, `categories.row`, `order-edit.bill-top`, `customer-edit.top`, `modules.config-js`...).
-- `BaseAdminController` helpers: `validateForm()`, `generateRedirectFromRoute()`, `generateErrorRedirect()`, `generateSuccessRedirect()`, `getParserContext()`.
+- `BaseAdminController` helpers: `validateForm()`, `generateRedirectFromRoute()` (core `router.admin` routes ONLY — see pitfall below for module routes), `generateErrorRedirect()`, `generateSuccessRedirect()`, `getParserContext()`.
 - Details: [references/smarty-back.md](references/smarty-back.md)
 
 ### 4.5 Hooks
@@ -297,6 +297,7 @@ Access from `BaseModule`: `$this->getContainer()` (`L143`), `$this->getRequest()
 | 10 | Native Doctrine AP filters incompatible with Propel resource | runtime crash | 7 Thelia custom Propel filters only |
 
 Bonus criticals:
+- `generateRedirectFromRoute('my_module_route')` in a module controller throws `RouteNotFoundException` ("Unable to generate a URL for the named route"): `BaseAdminController` generates URLs against `router.admin` (core routes only), which does not contain the module's `#[Route]` attribute routes — request matching works, URL generation does not. Use `$this->generateRedirect(URL::getInstance()->absoluteUrl('/admin/my_module/...'))` instead. Trap: the action (delete/toggle...) executes BEFORE the redirect, so it silently succeeds despite the 500
 - `registerHooks()` outside transaction -> module active without hooks if exception (`BaseModule.php:111`)
 - `ORDER_BEFORE_CREATE` does not exist; use `ORDER_BEFORE_PAYMENT` (`TheliaEvents.php:296`)
 - `CART_ADDITEM` (productId payload) vs `AFTER_CARTADDITEM` (cart only, productId absent): choose based on the payload you need
