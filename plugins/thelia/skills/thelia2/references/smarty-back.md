@@ -40,7 +40,7 @@ Excerpts from `templates/backOffice/default/admin-layout.tpl` and pages:
 | Helper | Signature | Role |
 |---|---|---|
 | `validateForm` | `validateForm(BaseForm $form, $expectedMethod = null): \Symfony\Component\Form\Form` | CSRF + method + Symfony validators; throws `FormValidationException` otherwise. Exceptions caught in `ParserContext` (`BaseController.php:263-271`) |
-| `generateRedirectFromRoute` | `generateRedirectFromRoute(string $route, array $params = [])` | Redirect to admin URL |
+| `generateRedirectFromRoute` | `generateRedirectFromRoute(string $route, array $params = [])` | Redirect to admin URL — **core `router.admin` routes only**: module `#[Route]` names raise `RouteNotFoundException`, use `generateRedirect(URL::getInstance()->absoluteUrl('/admin/...'))` in module controllers |
 | `generateErrorRedirect` | `generateErrorRedirect(BaseForm $form)` | Redirect to form `error_url` with errors persisted in `ParserContext` |
 | `generateSuccessRedirect` | `generateSuccessRedirect(BaseForm $form)` | Redirect to `success_url` |
 | `getParserContext` | `getParserContext(): ParserContext` | Push errors / variables for Smarty |
