@@ -1,15 +1,15 @@
 ---
 name: thelia3-module-migration
-description: "Migrating a Thelia 2 module to Thelia 3 (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3): namespace and directory structure changes, config.xml cleanup, auto-discovery of hooks/loops/forms (no config.xml declarations needed in T3), #[Route] replacing @Route and routing.xml, #[AutowireIterator]/#[AutowireLocator] replacing deprecated #[TaggedIterator]/#[TaggedLocator], native return types on Symfony interface overrides, Symfony 6.4-to-7.4 breaking changes, API Platform 3.x-to-4.3 breaking changes (namespace removals, openapiContext removal, standalone setup), Propel native typing strictness (tinyint as int not bool, decimal as string not float), migrating from thelia/open-api-module to native API Platform resources, back-office Smarty hook templates, front-office Smarty .tpl to Twig .html.twig with resources() replacing {loop}, LiveComponents replacing manual JS. Triggers on: migrate module, port module T2 T3, config.xml to configureServices, routing.xml to Route attribute, TaggedIterator AutowireIterator, open-api-module drop, BaseApiModel PropelResourceInterface, ApiPlatform\\Api removed, openapiContext deprecated, Thelia\\Install\\Database legacy namespace, getAnnotationRoutePrefix deprecated, BaseLoop deprecated."
+description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later): namespace and directory structure changes, config.xml cleanup, auto-discovery of hooks/loops/forms (no config.xml declarations needed in T3), #[Route] replacing @Route and routing.xml, #[AutowireIterator]/#[AutowireLocator] replacing deprecated #[TaggedIterator]/#[TaggedLocator], native return types on Symfony interface overrides, Symfony 6.4-to-7.4 breaking changes, API Platform 3.x-to-4.3 breaking changes (namespace removals, openapiContext removal, standalone setup), Propel native typing strictness (tinyint as int not bool, decimal as string not float), migrating from thelia/open-api-module to native API Platform resources, back-office Smarty hook templates to Twig, front-office Smarty .tpl to Twig .html.twig with resources() replacing {loop}, LiveComponents replacing manual JS. Triggers on: migrate module, port module T2 T3, config.xml to configureServices, routing.xml to Route attribute, TaggedIterator AutowireIterator, open-api-module drop, BaseApiModel PropelResourceInterface, ApiPlatform\\Api removed, openapiContext deprecated, Thelia\\Install\\Database legacy namespace, getAnnotationRoutePrefix deprecated, BaseLoop deprecated."
 ---
 
 # Thelia 2 to Thelia 3: Module Migration Guide
 
-> Covers porting a T2 module to T3 (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3) and modernizing an older T3 module that predates auto-registration.
+> Covers porting a T2 module to T3 (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later) and modernizing an older T3 module that predates auto-registration.
 
 ## 1. Breaking changes at a glance
 
-| Aspect | Thelia 2 | Thelia 3 (twig) | Impact |
+| Aspect | Thelia 2 | Thelia 3 | Impact |
 |---|---|---|---|
 | PHP | 8.0 - 8.2 | **8.3+** | strict_types, modern types |
 | Symfony | 6.0 - 6.3 | **7.4 LTS** | PHP 8 attributes, MapRequestPayload, Voters |
@@ -18,9 +18,10 @@ description: "Migrating a Thelia 2 module to Thelia 3 (twig branch, Symfony 7.4 
 | Front data | `{loop}` Smarty | `resources('/api/front/...')` | Internal API Platform call |
 | Front interactivity | Hooks + manual JS | **LiveComponents + Stimulus** | Reactive components |
 | Front HTML injection | `{hook}` Smarty | **Theme hooks** (`ThemeHookInterface` + `theme_hook()`) | Pure code, the theme declares the points |
-| Back-office | Smarty + XML hooks | **Smarty + auto-tag hooks** | XML hook declarations become optional |
+| Back-office | Smarty + XML hooks | **Twig (default-twig) + auto-tag hooks** | Template rewrite; XML hook declarations become optional |
+| Email / PDF templates | Smarty `.html` | **Twig `.html.twig`** (PDF rendered by dompdf) | Template rewrite |
 | DI | `<services>` in config.xml | `configureServices()` PHP | Modern, autoconfigure |
-| Routes | routing.xml | `#[Route]` PHP 8 | Auto-scanned from `Controller/` |
+| Routes | routing.xml | `#[Route]` PHP 8 (routing.xml deprecated) | Auto-scanned from `Controller/` |
 | Business logic | Event Actions | **Facades** + Services | `CartFacade`, `CustomerFacade`, etc. |
 | Database namespace | `Thelia\Install\Database` | `Thelia\Core\Install\Database` | Update use statement |
 | `configureServices` exclude | `THELIA_MODULE_DIR` constant | Relative path (`__DIR__.'/I18n/*'`) | Simpler |
@@ -34,10 +35,10 @@ description: "Migrating a Thelia 2 module to Thelia 3 (twig branch, Symfony 7.4 
 2. **`module.xml`**: update to XSD `module-2_2.xsd`, namespace `http://thelia.net/schema/dic/module`.
 3. **`MyModule.php`**: add `configureServices()` static method. Without it, zero classes are scanned.
 4. **`config.xml`**: strip `<services>`, `<hooks>`, `<loops>`, `<forms>`, `<commands>` (see section 3). They are now auto-discovered.
-5. **`routing.xml`**: delete, replace with `#[Route]` PHP 8 attributes on controllers.
+5. **`routing.xml`**: deprecated in T3. Delete it and declare every route with `#[Route]` PHP 8 attributes on controllers.
 6. **`schema.xml`**: adapt table namespaces and `external-schema` declarations for core FKs.
-7. **Hooks**: convert `<hooks>` XML to `extends BaseHook` + `static getSubscribedHooks()`. Back-office templates stay Smarty.
-8. **Loops**: `BaseLoop` is `@deprecated`. Keep as-is for back-office Smarty. For front-office, migrate to API Resources.
+7. **Hooks**: convert `<hooks>` XML to `extends BaseHook` + `static getSubscribedHooks()`. Rewrite the back-office templates to Twig under `templates/backOffice/default-twig/`.
+8. **Loops**: `BaseLoop` is `@deprecated`. Keep it only where an existing `{loop}` call still depends on it. For front-office, migrate to API Resources.
 9. **Front templates**: rewrite `.tpl` Smarty to `.html.twig` Flexy. `{loop}` becomes `resources()`. Manual JS becomes LiveComponents + Stimulus.
 10. **API**: expose models via `PropelResourceInterface` (see section 5). To extend a native resource, use `ResourceAddonInterface`.
 11. **Forms**: keep `BaseForm` for HTML web forms. For simple REST APIs, use DTO + `#[MapRequestPayload]`.
@@ -462,7 +463,7 @@ composer why thelia/open-api-module
 
 If `composer why` still lists consuming modules, migrate those first.
 
-**Payment event migration.** Before Thelia 3 twig commit `2e0e5da9d`, `PaymentModuleService` dispatched two events that lived inside the OpenApi module. Those events were replaced with native Thelia equivalents:
+**Payment event migration.** In early Thelia 3 development, `PaymentModuleService` dispatched two events that lived inside the OpenApi module. Those events were replaced with native Thelia equivalents:
 - `Thelia\Api\Resource\PaymentModuleOption{,Group,Choice}` (mirroring `DeliveryModuleOption`).
 - `Thelia\Api\Bridge\Propel\Event\PaymentModuleOptionEvent` with the same constructor contract.
 - `PaymentModuleService` now uses `TheliaEvents::MODULE_PAYMENT_GET_OPTIONS` (same string `thelia.module.payment.options`, so no BC on the event name contract).
@@ -481,7 +482,7 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 | Stale Twig cache after template override | `cache:clear` |
 | `module_template_dirs.php` stale | `cache:clear` after activation |
 | `var/propel/test/` cache pointing at wrong database | `bin/test-prepare` auto-purges it |
-| `THELIA_VERSION = '2.6.0'` | Constant not bumped for T3, do not rely on it |
+| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant is `'3.0.0-beta1'`; a stale value means the old core is still autoloaded |
 | `getPropelRelatedTableMap()` returns null on concrete resource | Always return `new XxxTableMap()` |
 | LiveProp with Propel object | Use DTOs or scalar values only |
 | `resources()` called from CLI | Unusable, throws `RuntimeException` (no main request). Add a guard or avoid. |
@@ -506,7 +507,8 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 - [ ] `#[AutowireIterator]` / `#[AutowireLocator]` instead of `#[TaggedIterator]` / `#[TaggedLocator]`
 - [ ] `Thelia\Core\Install\Database` instead of `Thelia\Install\Database`
 - [ ] `BaseHook` + `getSubscribedHooks()` for back-office hooks (no XML declaration)
-- [ ] Back-office hook templates are Smarty (`.html` in `templates/backOffice/default/`)
+- [ ] Back-office hook templates are Twig (`.html.twig` in `templates/backOffice/default-twig/`)
+- [ ] Email and PDF templates are Twig (`.html.twig` / `.txt.twig`)
 - [ ] Front-office templates are Twig (`.html.twig` in `templates/frontOffice/flexy/`)
 - [ ] `{loop}` replaced by `resources('/api/front/...')` in Twig templates
 - [ ] No `BaseApiModel`, no `extends BaseAdminOpenApiController`

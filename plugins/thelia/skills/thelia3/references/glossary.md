@@ -1,6 +1,6 @@
 # Thelia 3 Vocabulary - Complete Glossary
 
-> Exhaustive reference of classes, interfaces, services, attributes, Twig functions, and constants used in Thelia 3 module development (`twig` branch, SF 7.4 LTS, AP 4.3, PHP 8.3).
+> Exhaustive reference of classes, interfaces, services, attributes, Twig functions, and constants used in Thelia 3 module development (SF 7.4 LTS, AP 4.3, PHP 8.3 or later).
 
 ## Module lifecycle
 
@@ -143,11 +143,11 @@
 
 | Symbol | Description |
 |---|---|
-| `BaseHook` | Back-office hook base (Smarty) |
+| `BaseHook` | Back-office hook base (Twig templates) |
 | `BaseHookInterface` | Auto-tagged `hook.event_listener` |
 | `getSubscribedHooks(): array` | Auto hook declaration (static) |
 | `HookRenderEvent` | Hook event - `add(html)`, `addTemplate()`, `addJS()`, `addCSS()` |
-| `BaseLoop` | Canonical for `{loop type=...}` Smarty BO. Flexy/Twig front prefers `resources()`. |
+| `BaseLoop` | Legacy `{loop type=...}` data source. Prefer `resources()`. |
 | `LoopInterface` | Auto-tagged `thelia.loop` |
 | `PropelSearchLoopInterface` | Loop with Propel query |
 | `LoopResult` / `LoopResultRow` | Loop results |
@@ -216,7 +216,7 @@
 | `THELIA_LIB` | `core/lib/` |
 | `THELIA_WEB_DIR` | Public directory (`web/` or `public/`) |
 | `THELIA_TEMPLATE_DIR` | `templates/` |
-| `THELIA_VERSION` | `'2.6.0'` - not bumped for T3, do not rely on it |
+| `THELIA_VERSION` | `'3.0.0-beta1'` |
 | `Translator::getInstance()` | Singleton - prefer injected `TranslatorInterface` |
 | `Thelia\Core\Translation\Translator` | Alias of injected `TranslatorInterface`; default domain **`core`**; missing key -> raw string (`strtr`). Distinct from Symfony `translator` service (Twig `\|trans`, domain `messages`) |
 | `URL::getInstance()` | Singleton - same |

@@ -1,6 +1,6 @@
 # Thelia 3 Modules - Skeleton, lifecycle, persistence
 
-> Stack: SF 7.4 LTS, AP 4.3, PHP 8.3, Propel ORM, `twig` branch. Modules are loaded from the DB (`ModuleQuery::getActivated()`).
+> Stack: SF 7.4 LTS, AP 4.3, PHP 8.3 or later, Propel ORM. Modules are loaded from the DB (`ModuleQuery::getActivated()`).
 
 ## 1. Module discovery
 
@@ -61,7 +61,9 @@ Target XSD: `module-2_2.xsd`, namespace `http://thelia.net/schema/dic/module`. T
 </module>
 ```
 
-Required fields: `<fullnamespace>`, `<descriptive locale><title>`, `<version>`, `<type>` (`classic|delivery|payment|marketplace|price|accounting|seo|administration|statistic`), `<stability>` (`alpha|beta|rc|prod|other`).
+Required fields: `<fullnamespace>`, `<descriptive locale><title>`, `<version>`, `<type>` (`classic|delivery|payment|marketplace|price|accounting|seo|administration|statistic`), `<stability>` (`alpha|beta|rc|prod|other` - `production` is not a valid value and fails XSD validation).
+
+`<thelia>` holds the minimum core version a module needs: `3.0.0` for a Thelia 3 module.
 
 Optional: `<required><module version="x.y">Code</module>` (dependencies), `<thelia>` (min version), `<mandatory>` (1 = cannot be uninstalled), `<hidden>`.
 
@@ -111,7 +113,7 @@ public function postActivation(?ConnectionInterface $con = null): void
 
 **Strict rule**: ALL code in `postActivation()` (insertSql, Propel seed, default hook creation, fixtures) MUST be inside the `if (!is_initialized)` block. Outside the guard = re-executes on every reactivation, causing N+1 on all customers/products, timeout risk in production, duplicate data, and unexpected side effects.
 
-**Propel seed on first activation**: `MyModule\Model\*` Propel classes are only generated after `module:post-activate-all` (`bin/install`). If the seed instantiates `MyModuleQuery::create()` directly in `postActivation()`, the first pass results in `Class not found`. Three solutions:
+**Propel seed on first activation**: `MyModule\Model\*` Propel classes are generated under `var/propel/{APP_ENV}/model/`, and only after `module:post-activate-all` (`bin/install`). A `Class not found` on a module model later in the project life is the same cache being stale, not a namespace error. If the seed instantiates `MyModuleQuery::create()` directly in `postActivation()`, the first pass results in `Class not found`. Three solutions:
 1. Seed via raw SQL in `Config/TheliaMain.sql` (simplest, guaranteed idempotent via `INSERT ... ON DUPLICATE KEY UPDATE`)
 2. Seed in a dedicated command `app:my-module:seed` launched after `module:post-activate-all`
 3. Lazy pattern: detect `class_exists(MyModuleQuery::class)` before seeding, otherwise defer
@@ -126,7 +128,7 @@ CLI: `ModuleManagement::installModule()` validates, inserts into DB, dispatches 
 
 Canonical convention: PHP 8 `#[Route]` on controllers. `ModuleAttributeLoader` (`ModuleAttributeLoader.php:35`) scans `Controller/` of each active module with `AttributeDirectoryLoader` + `AttributeRouteControllerLoader`.
 
-`routing.xml`: EMPTY/absent in all modern modules.
+`routing.xml` is deprecated for modules. `#[Route]` attributes are the only documented way to declare module routes.
 
 Module prefix: override `static getRoutePrefix(): string` (NOT the deprecated `getAnnotationRoutePrefix()`).
 

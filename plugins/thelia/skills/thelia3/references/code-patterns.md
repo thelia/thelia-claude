@@ -562,7 +562,11 @@ Diagnosing "Tried to validate an invalid token": if `_token` values in the DOM a
 
 ### SSR fragments via `render(controller(...))`
 
-When a template embeds a sub-controller (`render(controller('App\\Controller\\X::method', {param: value}))`), parameters arrive in `$request->attributes`, **not** in the query string. The controller must read via `$request->get('param')` (which looks in attributes + query + request), never `$request->query->get('param')` (query string only). The same endpoint exposed as a GET AJAX call receives its params in query -> `$request->get()` covers both cases.
+When a template embeds a sub-controller (`render(controller('App\\Controller\\X::method', {param: value}))`), parameters arrive in `$request->attributes`, **not** in the query string. Declare the parameter as a typed controller argument so Symfony resolves it from the attributes, or read `$request->attributes` explicitly. Do not fall back to `$request->get()`: it silently searches attributes, then query, then body, so the source of a value is unknown and a query parameter can shadow a route attribute. If the same endpoint is also called as a GET AJAX request, read both bags explicitly:
+
+```php
+$id = $request->attributes->getInt('id') ?: $request->query->getInt('id');
+```
 
 ## 11. Code traps
 
@@ -580,3 +584,4 @@ When a template embeds a sub-controller (`render(controller('App\\Controller\\X:
 | Untyped exception (`\Exception`) | specific exceptions |
 | Redundant PHPDoc | remove - code is doc |
 | Mutable services | always `final readonly class` |
+| `$request->get('x')` | ambiguous source - read `$request->attributes`, `$request->query` or `$request->request` explicitly |
