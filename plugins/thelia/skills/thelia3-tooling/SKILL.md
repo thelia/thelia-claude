@@ -1,6 +1,6 @@
 ---
 name: thelia3-tooling
-description: Operational gotchas when developing and testing Thelia 3 (the twig branch): the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, and rebuilding a theme's compiled assets after composer update. Use when a Thelia command, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain.
+description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, and rebuilding a theme's compiled assets after composer update. Use when a Thelia command, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
 ---
 
 # Thelia 3 tooling

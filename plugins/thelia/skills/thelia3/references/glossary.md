@@ -1,6 +1,6 @@
 # Thelia 3 Vocabulary - Complete Glossary
 
-> Exhaustive reference of classes, interfaces, services, attributes, Twig functions, and constants used in Thelia 3 module development (`twig` branch, SF 7.4 LTS, AP 4.3, PHP 8.3).
+> Exhaustive reference of classes, interfaces, services, attributes, Twig functions, and constants used in Thelia 3 module development (SF 7.4 LTS, AP 4.3, PHP 8.3 or later).
 
 ## Module lifecycle
 

@@ -1,11 +1,11 @@
 ---
 name: thelia3-module-migration
-description: "Migrating a Thelia 2 module to Thelia 3 (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3): namespace and directory structure changes, config.xml cleanup, auto-discovery of hooks/loops/forms (no config.xml declarations needed in T3), #[Route] replacing @Route and routing.xml, #[AutowireIterator]/#[AutowireLocator] replacing deprecated #[TaggedIterator]/#[TaggedLocator], native return types on Symfony interface overrides, Symfony 6.4-to-7.4 breaking changes, API Platform 3.x-to-4.3 breaking changes (namespace removals, openapiContext removal, standalone setup), Propel native typing strictness (tinyint as int not bool, decimal as string not float), migrating from thelia/open-api-module to native API Platform resources, back-office Smarty hook templates, front-office Smarty .tpl to Twig .html.twig with resources() replacing {loop}, LiveComponents replacing manual JS. Triggers on: migrate module, port module T2 T3, config.xml to configureServices, routing.xml to Route attribute, TaggedIterator AutowireIterator, open-api-module drop, BaseApiModel PropelResourceInterface, ApiPlatform\\Api removed, openapiContext deprecated, Thelia\\Install\\Database legacy namespace, getAnnotationRoutePrefix deprecated, BaseLoop deprecated."
+description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later): namespace and directory structure changes, config.xml cleanup, auto-discovery of hooks/loops/forms (no config.xml declarations needed in T3), #[Route] replacing @Route and routing.xml, #[AutowireIterator]/#[AutowireLocator] replacing deprecated #[TaggedIterator]/#[TaggedLocator], native return types on Symfony interface overrides, Symfony 6.4-to-7.4 breaking changes, API Platform 3.x-to-4.3 breaking changes (namespace removals, openapiContext removal, standalone setup), Propel native typing strictness (tinyint as int not bool, decimal as string not float), migrating from thelia/open-api-module to native API Platform resources, back-office Smarty hook templates, front-office Smarty .tpl to Twig .html.twig with resources() replacing {loop}, LiveComponents replacing manual JS. Triggers on: migrate module, port module T2 T3, config.xml to configureServices, routing.xml to Route attribute, TaggedIterator AutowireIterator, open-api-module drop, BaseApiModel PropelResourceInterface, ApiPlatform\\Api removed, openapiContext deprecated, Thelia\\Install\\Database legacy namespace, getAnnotationRoutePrefix deprecated, BaseLoop deprecated."
 ---
 
 # Thelia 2 to Thelia 3: Module Migration Guide
 
-> Covers porting a T2 module to T3 (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3) and modernizing an older T3 module that predates auto-registration.
+> Covers porting a T2 module to T3 (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later) and modernizing an older T3 module that predates auto-registration.
 
 ## 1. Breaking changes at a glance
 
@@ -462,7 +462,7 @@ composer why thelia/open-api-module
 
 If `composer why` still lists consuming modules, migrate those first.
 
-**Payment event migration.** Before Thelia 3 twig commit `2e0e5da9d`, `PaymentModuleService` dispatched two events that lived inside the OpenApi module. Those events were replaced with native Thelia equivalents:
+**Payment event migration.** In early Thelia 3 development, `PaymentModuleService` dispatched two events that lived inside the OpenApi module. Those events were replaced with native Thelia equivalents:
 - `Thelia\Api\Resource\PaymentModuleOption{,Group,Choice}` (mirroring `DeliveryModuleOption`).
 - `Thelia\Api\Bridge\Propel\Event\PaymentModuleOptionEvent` with the same constructor contract.
 - `PaymentModuleService` now uses `TheliaEvents::MODULE_PAYMENT_GET_OPTIONS` (same string `thelia.module.payment.options`, so no BC on the event name contract).

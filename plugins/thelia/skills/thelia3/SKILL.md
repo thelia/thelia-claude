@@ -1,11 +1,37 @@
 ---
 name: thelia3
-description: "Thelia 3 e-commerce framework (twig branch, Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), front theme hooks (theme_hook() Twig function + ThemeHookInterface), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, twig branch, TheliaKernel, BaseModule, configureServices, BaseHook, theme_hook, ThemeHookInterface, theme hooks, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
+description: "Thelia 3 e-commerce framework (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), front theme hooks (theme_hook() Twig function + ThemeHookInterface), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, TheliaKernel, BaseModule, configureServices, BaseHook, theme_hook, ThemeHookInterface, theme hooks, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
 ---
 
 # Thelia 3 - Module Development Guide
 
-> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3, Propel ORM, `twig` branch. Front in Twig (Flexy, Webpack Encore, Tailwind), back-office in Twig via the default-twig theme. No Doctrine, no Messenger, no Turbo/Mercure.
+> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later, Propel ORM. Front in Twig (Flexy, Webpack Encore, Tailwind), back-office in Twig via the default-twig theme. Email and PDF templates are Twig too. No Doctrine, no Messenger, no Turbo/Mercure.
+
+## 0. Install and version constraints
+
+Thelia 3 is installed from tagged releases, not from a development branch:
+
+```bash
+composer create-project thelia/thelia-project my-shop
+```
+
+While `3.0.0-beta1` is the only tag, add `--stability=beta`, or target the version explicitly:
+
+```bash
+composer create-project thelia/thelia-project:^3.0.0-beta1 my-shop
+```
+
+Constraints for an existing project:
+
+| Package | Constraint |
+|---|---|
+| `thelia/core`, `thelia/thelia-project` | `^3.0.0-beta1` |
+| Templates (`thelia/flexy`, back-office, email, PDF) | `^1.0.0-beta1` |
+| `thelia/*-module` | the module's current major |
+
+The project `composer.json` also needs `"minimum-stability": "beta"` and `"prefer-stable": true` until a stable release is tagged.
+
+`THELIA_VERSION` is `3.0.0-beta1`.
 
 ## 1. Decision router - "I want to..."
 

@@ -4,8 +4,8 @@ description: >
   Validates a fresh Thelia 3 install from an empty directory and empty database.
   Use after a version bump, a merge, or any change to bin/install, bin/test-prepare,
   bootstrap.php, or DatabaseSetup. Covers two scenarios: the thelia/thelia dev repo
-  (with core/ as a path repository) and the thelia-project skeleton
-  (simulating a new developer install via composer create-project).
+  (with core/ as a path repository) and the thelia-project skeleton installed the way
+  a new developer installs it, with composer create-project from the tagged releases.
 ---
 
 # Skill: Fresh Install Test
@@ -22,8 +22,10 @@ Reusable validation protocol for a clean Thelia 3 installation. Run it after any
 ## Prerequisites
 
 - DDEV installed and running
-- SSH access to the GitHub repos under `thelia/*`
+- SSH access to the GitHub repos under `thelia/*` for the dev-repo scenario
 - The target workspace directory must be empty (the protocol deletes and recreates it)
+
+Thelia 3 ships as tagged releases; there is no development branch to install from. Test 1 clones the development repository, whose default branch is `main`. Test 2 installs the published packages. While `3.0.0-beta1` is the newest tag, the skeleton needs `--stability=beta` (or an explicit `thelia/thelia-project:^3.0.0-beta1`), and a project's own `composer.json` needs `"minimum-stability": "beta"` with `"prefer-stable": true`.
 
 ---
 
@@ -35,7 +37,7 @@ Reusable validation protocol for a clean Thelia 3 installation. Run it after any
 WORKSPACE=<path-to-your-workspace>
 
 PROJECT=thelia-3
-BRANCH=twig  # replace with the branch you want to test
+BRANCH=main  # replace with the branch or tag you want to test
 
 # 1. Full cleanup
 ddev stop --unlist $PROJECT 2>/dev/null
@@ -116,20 +118,20 @@ ddev exec php bin/console debug:container --deprecations | head -3
 ## Test 2: thelia/thelia-project (simulates a new developer install)
 
 ```bash
-# Set WORKSPACE to the directory that will contain the cloned project.
+# Set WORKSPACE to the directory that will contain the project.
 WORKSPACE=<path-to-your-workspace>
 
 PROJECT=thelia-project-test
-BRANCH=twig
 
 # 1. Full cleanup
 ddev stop --unlist $PROJECT 2>/dev/null
 ddev delete -Oy $PROJECT 2>/dev/null
 rm -rf "$WORKSPACE/$PROJECT"
 
-# 2. Clone
+# 2. Create the project from the tagged release
 cd "$WORKSPACE"
-git clone -b $BRANCH git@github.com:thelia/thelia-project.git $PROJECT
+composer create-project --stability=beta thelia/thelia-project $PROJECT
+# Equivalent, pinned: composer create-project thelia/thelia-project:^3.0.0-beta1 $PROJECT
 cd $PROJECT
 
 # 3. Configure DDEV (MariaDB version can vary by host)
@@ -137,7 +139,7 @@ ddev config --project-name=$PROJECT --project-type=symfony --docroot=public \
   --php-version=8.3 --webserver-type=nginx-fpm --database=mariadb:11.8
 ddev start
 
-# 4. Install PHP dependencies
+# 4. Install PHP dependencies inside the container
 ddev exec composer install
 
 # 5. Install Thelia with demo data and admin account
@@ -168,6 +170,7 @@ ddev exec php -r 'require "vendor/autoload.php"; echo Symfony\Component\HttpKern
 - `bootstrap.php` must NOT load `vendor/autoload.php` (doing so disables the Symfony Runtime via its `require_once` guard).
 - `public/index.php` must load `bootstrap.php` first, then `vendor/autoload_runtime.php`.
 - `bin/console` passes through `vendor/thelia/core/Thelia`, not the standard Symfony pattern.
+- Constraints in the generated `composer.json`: `^3.0.0-beta1` for `thelia/core` and the skeleton, `^1.0.0-beta1` for the templates, the module's current major for `thelia/*-module`, plus `"minimum-stability": "beta"` and `"prefer-stable": true`.
 
 ---
 

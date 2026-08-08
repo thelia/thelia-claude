@@ -1,6 +1,6 @@
 # Thelia 3 Modules - Skeleton, lifecycle, persistence
 
-> Stack: SF 7.4 LTS, AP 4.3, PHP 8.3, Propel ORM, `twig` branch. Modules are loaded from the DB (`ModuleQuery::getActivated()`).
+> Stack: SF 7.4 LTS, AP 4.3, PHP 8.3 or later, Propel ORM. Modules are loaded from the DB (`ModuleQuery::getActivated()`).
 
 ## 1. Module discovery
 
