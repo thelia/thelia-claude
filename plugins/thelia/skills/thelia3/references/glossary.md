@@ -216,7 +216,7 @@
 | `THELIA_LIB` | `core/lib/` |
 | `THELIA_WEB_DIR` | Public directory (`web/` or `public/`) |
 | `THELIA_TEMPLATE_DIR` | `templates/` |
-| `THELIA_VERSION` | `'2.6.0'` - not bumped for T3, do not rely on it |
+| `THELIA_VERSION` | `'3.0.0-beta1'` |
 | `Translator::getInstance()` | Singleton - prefer injected `TranslatorInterface` |
 | `Thelia\Core\Translation\Translator` | Alias of injected `TranslatorInterface`; default domain **`core`**; missing key -> raw string (`strtr`). Distinct from Symfony `translator` service (Twig `\|trans`, domain `messages`) |
 | `URL::getInstance()` | Singleton - same |

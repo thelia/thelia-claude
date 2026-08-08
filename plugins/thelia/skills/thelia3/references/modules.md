@@ -61,7 +61,9 @@ Target XSD: `module-2_2.xsd`, namespace `http://thelia.net/schema/dic/module`. T
 </module>
 ```
 
-Required fields: `<fullnamespace>`, `<descriptive locale><title>`, `<version>`, `<type>` (`classic|delivery|payment|marketplace|price|accounting|seo|administration|statistic`), `<stability>` (`alpha|beta|rc|prod|other`).
+Required fields: `<fullnamespace>`, `<descriptive locale><title>`, `<version>`, `<type>` (`classic|delivery|payment|marketplace|price|accounting|seo|administration|statistic`), `<stability>` (`alpha|beta|rc|prod|other` - `production` is not a valid value and fails XSD validation).
+
+`<thelia>` holds the minimum core version a module needs: `3.0.0` for a Thelia 3 module.
 
 Optional: `<required><module version="x.y">Code</module>` (dependencies), `<thelia>` (min version), `<mandatory>` (1 = cannot be uninstalled), `<hidden>`.
 
@@ -126,7 +128,7 @@ CLI: `ModuleManagement::installModule()` validates, inserts into DB, dispatches 
 
 Canonical convention: PHP 8 `#[Route]` on controllers. `ModuleAttributeLoader` (`ModuleAttributeLoader.php:35`) scans `Controller/` of each active module with `AttributeDirectoryLoader` + `AttributeRouteControllerLoader`.
 
-`routing.xml`: EMPTY/absent in all modern modules.
+`routing.xml` is deprecated for modules. `#[Route]` attributes are the only documented way to declare module routes.
 
 Module prefix: override `static getRoutePrefix(): string` (NOT the deprecated `getAnnotationRoutePrefix()`).
 

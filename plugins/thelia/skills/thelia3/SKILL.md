@@ -31,7 +31,7 @@ Constraints for an existing project:
 
 The project `composer.json` also needs `"minimum-stability": "beta"` and `"prefer-stable": true` until a stable release is tagged.
 
-`THELIA_VERSION` is `3.0.0-beta1`.
+`THELIA_VERSION` is `3.0.0-beta1`. The announced PHP matrix is 8.3; 8.4 support is being validated in CI.
 
 ## 1. Decision router - "I want to..."
 

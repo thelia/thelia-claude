@@ -9,7 +9,7 @@ description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Plat
 
 ## 1. Breaking changes at a glance
 
-| Aspect | Thelia 2 | Thelia 3 (twig) | Impact |
+| Aspect | Thelia 2 | Thelia 3 | Impact |
 |---|---|---|---|
 | PHP | 8.0 - 8.2 | **8.3+** | strict_types, modern types |
 | Symfony | 6.0 - 6.3 | **7.4 LTS** | PHP 8 attributes, MapRequestPayload, Voters |
@@ -20,7 +20,7 @@ description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Plat
 | Front HTML injection | `{hook}` Smarty | **Theme hooks** (`ThemeHookInterface` + `theme_hook()`) | Pure code, the theme declares the points |
 | Back-office | Smarty + XML hooks | **Smarty + auto-tag hooks** | XML hook declarations become optional |
 | DI | `<services>` in config.xml | `configureServices()` PHP | Modern, autoconfigure |
-| Routes | routing.xml | `#[Route]` PHP 8 | Auto-scanned from `Controller/` |
+| Routes | routing.xml | `#[Route]` PHP 8 (routing.xml deprecated) | Auto-scanned from `Controller/` |
 | Business logic | Event Actions | **Facades** + Services | `CartFacade`, `CustomerFacade`, etc. |
 | Database namespace | `Thelia\Install\Database` | `Thelia\Core\Install\Database` | Update use statement |
 | `configureServices` exclude | `THELIA_MODULE_DIR` constant | Relative path (`__DIR__.'/I18n/*'`) | Simpler |
@@ -34,7 +34,7 @@ description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Plat
 2. **`module.xml`**: update to XSD `module-2_2.xsd`, namespace `http://thelia.net/schema/dic/module`.
 3. **`MyModule.php`**: add `configureServices()` static method. Without it, zero classes are scanned.
 4. **`config.xml`**: strip `<services>`, `<hooks>`, `<loops>`, `<forms>`, `<commands>` (see section 3). They are now auto-discovered.
-5. **`routing.xml`**: delete, replace with `#[Route]` PHP 8 attributes on controllers.
+5. **`routing.xml`**: deprecated in T3. Delete it and declare every route with `#[Route]` PHP 8 attributes on controllers.
 6. **`schema.xml`**: adapt table namespaces and `external-schema` declarations for core FKs.
 7. **Hooks**: convert `<hooks>` XML to `extends BaseHook` + `static getSubscribedHooks()`. Back-office templates stay Smarty.
 8. **Loops**: `BaseLoop` is `@deprecated`. Keep as-is for back-office Smarty. For front-office, migrate to API Resources.
@@ -481,7 +481,7 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 | Stale Twig cache after template override | `cache:clear` |
 | `module_template_dirs.php` stale | `cache:clear` after activation |
 | `var/propel/test/` cache pointing at wrong database | `bin/test-prepare` auto-purges it |
-| `THELIA_VERSION = '2.6.0'` | Constant not bumped for T3, do not rely on it |
+| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant is `'3.0.0-beta1'`; a stale value means the old core is still autoloaded |
 | `getPropelRelatedTableMap()` returns null on concrete resource | Always return `new XxxTableMap()` |
 | LiveProp with Propel object | Use DTOs or scalar values only |
 | `resources()` called from CLI | Unusable, throws `RuntimeException` (no main request). Add a guard or avoid. |
