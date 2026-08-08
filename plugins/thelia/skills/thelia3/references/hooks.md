@@ -1,6 +1,6 @@
 # Events and back-office extensions - Thelia 3
 
-> Symfony listeners + back-office hooks (Smarty) + front theme hooks (Twig) + legacy loops. Everything is auto-tagged from `BaseHookInterface` / `ThemeHookInterface` / `LoopInterface` / `EventSubscriberInterface` - NO XML declaration required.
+> Symfony listeners + back-office hooks (Twig) + front theme hooks (Twig) + legacy loops. Everything is auto-tagged from `BaseHookInterface` / `ThemeHookInterface` / `LoopInterface` / `EventSubscriberInterface` - NO XML declaration required.
 
 ## 1. `TheliaEvents`
 
@@ -122,7 +122,7 @@ class ProductHook extends BaseHook
 
     public function onProductTop(HookRenderEvent $event): void
     {
-        $event->add($this->render('product-top.html')); // Smarty
+        $event->add($this->render('product-top.html.twig'));
     }
 
     public function onNavbar(HookRenderEvent $event): void
@@ -175,8 +175,8 @@ final class CustomerEditHook extends BaseHook
 
 Option 1 is safer - no risk of breaking the parent init chain. Note: `final readonly class` is not possible on a Hook (same `#[Required]` setter constraint as controllers).
 
-Back-office hook templates = **Smarty only**:
-- `render:template.html` -> Smarty render
+Back-office hook templates are Twig, in `{module}/templates/backOffice/default-twig/`:
+- `render:template.html.twig` -> Twig render
 - `js:assets/js/script.js` -> inject JS
 - `css:assets/css/style.css` -> inject CSS
 
@@ -200,10 +200,10 @@ public function getHooks(): array
 
 | Value | Context | Equivalent |
 |---|---|---|
-| `'front'` | Front-office (Twig/Smarty front) | - |
-| `'back'` / `'bo'` / `'backoffice'` | Back-office (Smarty BO) | **all three are equivalent** |
-| `'email'` | Email templates | rare |
-| `'pdf'` | PDF generation (invoices, slips) | rare |
+| `'front'` | Front-office (Twig, Flexy) | - |
+| `'back'` / `'bo'` / `'backoffice'` | Back-office (Twig, default-twig) | **all three are equivalent** |
+| `'email'` | Email templates (Twig) | rare |
+| `'pdf'` | PDF generation (Twig, dompdf) | rare |
 
 For a BO hook, prefer `'back'` (most used in core). `'admin'` is **NOT** recognized - do not invent it.
 
@@ -237,8 +237,8 @@ public static function getSubscribedHooks(): array
 BO hooks are strings registered dynamically in the DB via `getHooks()` from modules + those placed in templates. To enumerate the extension points actually available in a given project:
 
 ```bash
-# Hooks placed in BO templates (Smarty)
-grep -rn '{hook name="' templates/backOffice/default/ | sed -E 's/.*hook name="([^"]+)".*/\1/' | sort -u
+# Hooks placed in BO templates (Twig)
+grep -rn "hook('" templates/backOffice/default-twig/ | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
 
 # Legacy hooks placed in front templates (Twig)
 grep -rn 'hook(' templates/frontOffice/flexy/ | grep -E "hook\('([^']+)'" | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
@@ -330,7 +330,7 @@ class ProductLoop extends BaseLoop implements PropelSearchLoopInterface
 ```
 
 **NOTE**: `BaseLoop` is `@deprecated` in Thelia 3, the future path is API Resources (`PropelResourceInterface`). Create a new loop only if:
-- Back-office compatibility (Smarty `{loop}`) is required
+- Back-office compatibility with an existing `{loop}` call is required
 - No equivalent API Resource can be exposed
 
 For all new front development: **API Resources + `resources()`** or **LiveComponent + `DataAccessService`**.

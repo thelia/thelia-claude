@@ -312,7 +312,7 @@ final class ConfigController extends BaseAdminController
 }
 ```
 
-Smarty template (back-office): `templates/backOffice/default/mypayment/config.html`.
+Back-office template (Twig): `templates/backOffice/default-twig/mypayment/config.html.twig`.
 
 ## 4. Typed module traps
 

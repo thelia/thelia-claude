@@ -143,11 +143,11 @@
 
 | Symbol | Description |
 |---|---|
-| `BaseHook` | Back-office hook base (Smarty) |
+| `BaseHook` | Back-office hook base (Twig templates) |
 | `BaseHookInterface` | Auto-tagged `hook.event_listener` |
 | `getSubscribedHooks(): array` | Auto hook declaration (static) |
 | `HookRenderEvent` | Hook event - `add(html)`, `addTemplate()`, `addJS()`, `addCSS()` |
-| `BaseLoop` | Canonical for `{loop type=...}` Smarty BO. Flexy/Twig front prefers `resources()`. |
+| `BaseLoop` | Legacy `{loop type=...}` data source. Prefer `resources()`. |
 | `LoopInterface` | Auto-tagged `thelia.loop` |
 | `PropelSearchLoopInterface` | Loop with Propel query |
 | `LoopResult` / `LoopResultRow` | Loop results |

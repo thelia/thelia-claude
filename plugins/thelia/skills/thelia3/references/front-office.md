@@ -225,11 +225,11 @@ When to use a Facade vs direct Propel:
 
 ## 8. Mailing and PDF
 
-Emails: **Smarty legacy** in `templates/email/default/` (`.html` + `.txt`). `MailerFactory` uses `ParserResolver` - if `.html` (without `.twig`), `SmartyParser` takes over. Module override: `{module}/templates/email/default/`.
+Emails: Twig templates in `templates/email/default/` (`.html.twig` + `.txt.twig`), resolved by `TwigParser`. Module override: `{module}/templates/email/default/`. The `message` table row points at the files through `html_template_file_name` / `text_template_file_name`.
 
-No Twig migration planned for emails. A module that wants Twig email: create its `.html.twig` files and ensure TwigParser resolves them.
+PDF: Twig templates in `templates/pdf/default/` (admin invoices and delivery slips), rendered with dompdf. Generation is event-driven: dispatch `TheliaEvents::GENERATE_PDF` with a `PdfEvent($html)` and `Action\Pdf` produces the document. A module can listen to that event at a higher priority to swap the renderer.
 
-PDF: `templates/pdf/default/` = back-office (admin invoices) in Smarty. No PDF engine on the Flexy front side - but the core has one, event-driven: dispatching `TheliaEvents::GENERATE_PDF` with a `PdfEvent($html)` triggers `Action\Pdf` which renders via `spipu/html2pdf` (already in core, no dompdf/wkhtmltopdf needed). A module can listen to this event at higher priority to swap the renderer. The HTML source still needs to be produced (currently Smarty BO).
+Both template sets are Twig in Thelia 3. A `.html` (non-Twig) email or PDF template is a Thelia 2 leftover.
 
 ## 9. Assets - Webpack Encore + Tailwind
 
