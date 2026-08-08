@@ -246,6 +246,8 @@ ddev exec bash -c "cd templates/frontOffice/flexy && npm install && npm run buil
 # Variants: npm run watch (encore dev --watch), npm run dev (encore dev)
 ```
 
+`composer update` on a theme deletes its compiled `dist/`, and the next render fails with "Could not find the entrypoints file from Webpack". Rebuild after every theme update.
+
 Public path: `/templates-assets/frontOffice/{theme}/dist`, symlinked by `EncoreExtension` at kernel boot (guard `!is_dir($dest)`). In production, `THELIA_WEB_DIR/templates-assets/` must be writable.
 
 Tailwind `tailwind.config.js`: custom CSS tokens (`var(--theme)`, `var(--theme-dark)`) -> theming without rebuild. Content scanned: `components/**/*.twig`, `src/UiComponents/**/*.twig`, `form/**/*.twig`, `*.twig`.

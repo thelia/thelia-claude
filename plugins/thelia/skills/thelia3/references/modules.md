@@ -113,7 +113,7 @@ public function postActivation(?ConnectionInterface $con = null): void
 
 **Strict rule**: ALL code in `postActivation()` (insertSql, Propel seed, default hook creation, fixtures) MUST be inside the `if (!is_initialized)` block. Outside the guard = re-executes on every reactivation, causing N+1 on all customers/products, timeout risk in production, duplicate data, and unexpected side effects.
 
-**Propel seed on first activation**: `MyModule\Model\*` Propel classes are only generated after `module:post-activate-all` (`bin/install`). If the seed instantiates `MyModuleQuery::create()` directly in `postActivation()`, the first pass results in `Class not found`. Three solutions:
+**Propel seed on first activation**: `MyModule\Model\*` Propel classes are generated under `var/propel/{APP_ENV}/model/`, and only after `module:post-activate-all` (`bin/install`). A `Class not found` on a module model later in the project life is the same cache being stale, not a namespace error. If the seed instantiates `MyModuleQuery::create()` directly in `postActivation()`, the first pass results in `Class not found`. Three solutions:
 1. Seed via raw SQL in `Config/TheliaMain.sql` (simplest, guaranteed idempotent via `INSERT ... ON DUPLICATE KEY UPDATE`)
 2. Seed in a dedicated command `app:my-module:seed` launched after `module:post-activate-all`
 3. Lazy pattern: detect `class_exists(MyModuleQuery::class)` before seeding, otherwise defer

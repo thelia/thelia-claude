@@ -187,7 +187,7 @@ public function callback(Request $request, EventDispatcherInterface $dispatcher)
     if (!$this->verifySignature($request)) {
         return new Response('', 403);
     }
-    $order = OrderQuery::create()->findPk((int) $request->get('order_id'));
+    $order = OrderQuery::create()->findPk($request->request->getInt('order_id'));
     if ($order === null) {
         return new Response('', 404);
     }

@@ -136,30 +136,9 @@ class ProductHook extends BaseHook
 
 ### Dependency injection in `BaseHook`
 
-`BaseHook` has a constructor signature `(?EventDispatcherInterface $dispatcher = null, ?ParserResolver $parserResolver = null)` + `#[Required]` setter for `container`. To inject your own deps, **two options**:
+`BaseHook` has a constructor signature `(?EventDispatcherInterface $dispatcher = null, ?ParserResolver $parserResolver = null)`. Inject your own dependencies **through the constructor**, forwarding the parent arguments:
 
 ```php
-// Option 1: #[Required] setters (compatible with parent init)
-final class CustomerEditHook extends BaseHook
-{
-    private CustomerLoyaltyRepository $loyaltyRepo;
-
-    #[Required]
-    public function setLoyaltyRepository(CustomerLoyaltyRepository $repo): void
-    {
-        $this->loyaltyRepo = $repo;
-    }
-
-    public static function getSubscribedHooks(): array { /* ... */ }
-
-    public function onCustomerEdit(HookRenderEvent $event): void
-    {
-        $loyalty = $this->loyaltyRepo->findByCustomerId($event->getArgument('id'));
-        $event->add($this->render('customer-edit-loyalty.html', ['loyalty' => $loyalty]));
-    }
-}
-
-// Option 2: child constructor calling parent
 final class CustomerEditHook extends BaseHook
 {
     public function __construct(
@@ -169,11 +148,18 @@ final class CustomerEditHook extends BaseHook
     ) {
         parent::__construct($dispatcher, $parserResolver);
     }
-    // ...
+
+    public static function getSubscribedHooks(): array { /* ... */ }
+
+    public function onCustomerEdit(HookRenderEvent $event): void
+    {
+        $loyalty = $this->loyaltyRepo->findByCustomerId($event->getArgument('id'));
+        $event->add($this->render('customer-edit-loyalty.html.twig', ['loyalty' => $loyalty]));
+    }
 }
 ```
 
-Option 1 is safer - no risk of breaking the parent init chain. Note: `final readonly class` is not possible on a Hook (same `#[Required]` setter constraint as controllers).
+**Never use a `#[Required]` setter or property for a hook dependency.** With autowiring it is silently left unwired, the property stays null, `render()` throws, and hook dispatch isolates the listener and swallows the exception - the hook renders nothing at all, with no error anywhere. Note: `final readonly class` is not possible on a Hook (`BaseHook` carries a `#[Required]` setter for the container, same constraint as controllers).
 
 Back-office hook templates are Twig, in `{module}/templates/backOffice/default-twig/`:
 - `render:template.html.twig` -> Twig render

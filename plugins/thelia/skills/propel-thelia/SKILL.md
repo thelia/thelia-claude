@@ -563,6 +563,8 @@ public function setPassword($password) { ... }
 public function setPassword(?string $password = null): static { ... }
 ```
 
+Never widen a non-nullable Base signature: if the Base getter returns `string`, an override that returns `?string` is not a compatible signature and fails at load. Keep the Base contract and handle the empty case inside the method.
+
 Common cases to align:
 - `getValue(): ?string` on Config, MetaData
 - `setPosition(?int $v = null): static` on Product, Content
@@ -633,7 +635,8 @@ Some methods that overrode Propel getters/setters with incompatible signatures w
 - **Singletons** `Translator::$instance` and `URL::$instance` must stay `?self = null` (fatal error in tests otherwise).
 - **`#[Ignore]` on `static` methods** crashes the Symfony Serializer. Never do this.
 - **Propel subprocess:** `PropelInitService` crashes when Propel is launched in a cold subprocess. Always boot `App\Kernel` in-process.
-- **`Base/` classes are regenerated.** Never edit them manually.
+- **`Base/` classes are regenerated.** Never edit them manually. Module models are generated under `var/propel/{APP_ENV}/model/`: a `Class not found` on `MyModuleQuery` usually means that cache is stale or was never built, not that the class is missing. Regenerate (`module:generate:model`, or re-run the post-activation) before looking for a namespace bug.
+- **Never widen a getter to nullable in a stub.** Overriding a non-nullable Base getter with a `?type` return is an incompatible signature and fails at load.
 - **`Collection` is no longer an iterator:** use `getIterator()`; the `current()`/`next()` methods are `@deprecated`.
 - **Strict setter typing:** setters now have native PHP types. Passing a `bool` to a `?int` setter (TINYINT) or a `float` to a `?string` setter (DECIMAL) raises a `TypeError`. Always cast explicitly.
 - **ENUM/SET are untyped:** ENUM/SET getters and properties have no native type (the getter returns a string, but Propel maps ENUM to int internally). Do not attempt to type them.

@@ -219,6 +219,8 @@ final class MyModule extends BaseModule
 | `OpenApi @OA\Schema` annotations | T2 residual | API Platform 4.3 attributes (`#[ApiResource]`) |
 | `BaseApiModel` | T2 residual | `PropelResourceInterface` + `PropelResourceTrait` |
 | `setRequest()` setter in services | service locator | constructor injection |
+| `#[Required]` setter for a dependency of a `BaseHook` | left unwired by autowiring, `render()` throws, hook isolation swallows it, blank output | constructor injection forwarding the parent arguments |
+| `$request->get('x')` | ambiguous: searches attributes, then query, then body | read `$request->attributes` / `query` / `request` explicitly |
 | `Thelia\Install\Database` (without `\Core`) | legacy namespace | `Thelia\Core\Install\Database` |
 | `new Database($con->getWrappedConnection())` | constructor accepts `ConnectionInterface` | `new Database($con)` |
 | `ContainerAwareInterface` (services, outside commands) | deprecated | explicit injection |
