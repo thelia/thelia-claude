@@ -11,7 +11,7 @@ description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Plat
 
 | Aspect | Thelia 2 | Thelia 3 | Impact |
 |---|---|---|---|
-| PHP | 8.0 - 8.2 | **8.3+** | strict_types, modern types |
+| PHP | 8.0 - 8.2 | **8.3 or 8.4** | strict_types, modern types |
 | Symfony | 6.0 - 6.3 | **7.4 LTS** | PHP 8 attributes, MapRequestPayload, Voters |
 | API | API Platform 3.x | **4.3 standalone** | Propel-based resources, addons |
 | Front templates | Smarty `.html` | **Twig `.html.twig`** (Flexy) | Full template rewrite |
@@ -26,6 +26,7 @@ description: "Migrating a Thelia 2 module to Thelia 3 (Symfony 7.4 LTS, API Plat
 | Database namespace | `Thelia\Install\Database` | `Thelia\Core\Install\Database` | Update use statement |
 | `configureServices` exclude | `THELIA_MODULE_DIR` constant | Relative path (`__DIR__.'/I18n/*'`) | Simpler |
 | API auth | None native | **JWT Lexik 3.2** + `/api/{front\|admin}/login` | Token-based |
+| Front assets | Webpack Encore + npm | **AssetMapper + Tailwind CLI** (`importmap.php`, no `package.json`) | Drop the module's Encore entrypoints |
 
 ---
 
@@ -73,7 +74,7 @@ Keep in config.xml if still needed:
 | `{intl l='Hello'}` | `{{ 'Hello'\|trans({}, 'mymodule') }}` |
 | `{form name="thelia.customer.login"}` | `{% set form = getForm('thelia.customer.login') %}{{ form_start(form) }}` |
 | `{hook name="product.top" product=$product}` | Front: implement `Thelia\Core\Hook\Theme\ThemeHookInterface` answering a point the theme declares (Flexy: `theme_hook('product.top', {product: product})`). BO: `BaseHook` unchanged. |
-| `{include file="..."}` | `{% include '@components/...' %}` |
+| `{include file="..."}` | `{% include '@Flexy/...' %}` |
 | `{assign var=...}` | `{% set ... %}` |
 | Complex conditional loop | `{% if %}{% else %}{% endif %}`, Twig filters |
 
@@ -178,7 +179,7 @@ T2:
 
 T3:
 ```php
-#[AsLiveComponent(name: 'Flexy:CartItem')]
+#[AsLiveComponent]
 class CartItem
 {
     use DefaultActionTrait, ComponentToolsTrait;
@@ -482,7 +483,7 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 | Stale Twig cache after template override | `cache:clear` |
 | `module_template_dirs.php` stale | `cache:clear` after activation |
 | `var/propel/test/` cache pointing at wrong database | `bin/test-prepare` auto-purges it |
-| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant is `'3.0.0-beta1'`; a stale value means the old core is still autoloaded |
+| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant carries the current 3.0 beta; a 2.x value means the old core is still autoloaded |
 | `getPropelRelatedTableMap()` returns null on concrete resource | Always return `new XxxTableMap()` |
 | LiveProp with Propel object | Use DTOs or scalar values only |
 | `resources()` called from CLI | Unusable, throws `RuntimeException` (no main request). Add a guard or avoid. |

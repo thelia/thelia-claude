@@ -101,18 +101,21 @@ class CustomerFamilyFormListener implements EventSubscriberInterface
 
 ```twig
 {% set form = getForm('thelia.customer.login') %}
+{% form_theme form with flexy_form_themes only %}
 {{ form_start(form) }}
 {{ form_row(form.email) }}
 {{ form_row(form.password) }}
 {{ form_end(form) }}
 ```
 
+The `form_theme` tag is required: no form theme is registered globally any more, so a form without it renders as bare Symfony markup. Put it inside the rendered block, before `form_start`.
+
 LiveComponent with form:
 ```php
 use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 
-#[AsLiveComponent(name: 'Flexy:Customer:Login')]
-class Login
+#[AsLiveComponent]
+class Base
 {
     use ComponentWithFormTrait;
 
@@ -135,7 +138,39 @@ class Login
 
 `TwigEngine\Service\FormService::getFormByName(name)` reads `Thelia.parser.forms`, looks in `ParserContext` (error case), otherwise creates via `TheliaFormFactory`. Throws `ElementNotFoundException` if form not registered.
 
-Flexy form theme: `templates/frontOffice/flexy/form/flexy_form_theme.html.twig` overrides `form_label`, `form_widget_simple`, `password_widget`.
+Flexy form theme: `@FlexyForm/flexy_form_theme.html.twig`, exposed through the `flexy_form_themes` Twig global. It is deliberately not a global `twig.form_themes` entry, because a global theme would also restyle the back-office forms.
+
+## 3b. Extending the customer personal data export
+
+A module adds its own section to the customer data export by implementing `Thelia\Domain\Customer\Service\CustomerPersonalDataProviderInterface`. It is autoconfigured by interface - no tag to declare.
+
+```php
+final readonly class LoyaltyPersonalDataProvider implements CustomerPersonalDataProviderInterface
+{
+    public function getPersonalDataSectionName(): string
+    {
+        return 'loyalty';
+    }
+
+    public function exportPersonalData(Customer $customer): array
+    {
+        return ['points' => $this->repository->pointsFor($customer)];
+    }
+
+    public function anonymizePersonalData(Customer $customer): void
+    {
+        $this->repository->forget($customer);
+    }
+}
+```
+
+The core sections are `customer`, `addresses`, `orders`, `carts`, `newsletter`; reusing one of those names throws a `LogicException` at export time. The export runs on `TheliaEvents::CUSTOMER_PERSONAL_DATA_EXPORT` with a `CustomerPersonalDataExportEvent`; the core listener fills its own sections at priority 128, so a later listener can still `addSection()`. The same interface serves the anonymization path (`TheliaEvents::CUSTOMER_ANONYMIZE`), so implement both methods together.
+
+## 3c. Rate-limited activation code resend
+
+`CustomerCodeManager::requestCode(Customer $customer, int $expiryTimeInHours = 24): bool` sends an activation code through a rate limiter and returns `false` when the caller is over quota (sliding window: 3 per hour per email address, 10 per hour per client IP). Prefer it over `createCodeAndSendIt()`, which has no limiter.
+
+Answer identically whether it returned `true` or `false`. A UI that distinguishes the two leaks which addresses have an account.
 
 ### `form_end()` renders un-rendered fields
 

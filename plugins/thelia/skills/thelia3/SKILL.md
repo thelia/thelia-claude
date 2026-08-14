@@ -1,37 +1,35 @@
 ---
 name: thelia3
-description: "Thelia 3 e-commerce framework (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), front theme hooks (theme_hook() Twig function + ThemeHookInterface), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, TheliaKernel, BaseModule, configureServices, BaseHook, theme_hook, ThemeHookInterface, theme hooks, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
+description: "Thelia 3 e-commerce framework (Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later, Propel ORM, Flexy/Twig front, Twig back-office via the default-twig theme). Covers modern module development: configureServices() autoconfigure, API resources (PropelResourceInterface, ResourceAddonInterface), Flexy front (LiveComponents, TwigComponents, resources() / attr() Twig, facades CartFacade/CustomerFacade/OrderFacade/CheckoutFacade), auto-discovered hooks and loops (NO config.xml required for these declarations), front theme hooks (theme_hook() Twig function + ThemeHookInterface), Thelia events, typed modules (AbstractPaymentModule/AbstractDeliveryModule), tests (IntegrationTestCase, ApiTestCase, FixtureFactory). Use when working on Thelia 3 projects, creating modules in local/modules or vendor, building front-office Twig/Flexy with LiveComponents, exposing API resources, extending native resources, migrating from Thelia 2. Triggers on: thelia 3, TheliaKernel, BaseModule, configureServices, BaseHook, theme_hook, ThemeHookInterface, theme hooks, BaseLoop, BaseForm, PropelResourceInterface, ResourceAddonInterface, AbstractTranslatableResource, DataAccessService, resources(), attr(), AsLiveComponent, AsTwigComponent, CartFacade, CustomerFacade, OrderFacade, CheckoutFacade, Flexy, FlexyBundle, ViewController, views.yaml, InternalViewsDeclaration, ignore_thelia_view, importmap.php, AssetMapper, flexy_form_themes, CustomerPersonalDataProviderInterface, AbstractPaymentModule, AbstractDeliveryModule, FixtureFactory, IntegrationTestCase, ApiTestCase, local/modules, vendor/thelia/modules, ApiFilter SearchFilter OrderFilter BooleanFilter RangeFilter NotInFilter DateFilter. Do NOT trigger for Thelia 2 projects (Smarty .html front templates, {loop}, {hook} Smarty syntax)."
 ---
 
 # Thelia 3 - Module Development Guide
 
-> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or later, Propel ORM. Front in Twig (Flexy, Webpack Encore, Tailwind), back-office in Twig via the default-twig theme. Email and PDF templates are Twig too. No Doctrine, no Messenger, no Turbo/Mercure.
+> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or 8.4, Propel ORM. Front in Twig (Flexy, AssetMapper, Tailwind CLI), back-office in Twig via the default-twig theme. Email and PDF templates are Twig too. No Doctrine, no Messenger, no Turbo/Mercure.
 
 ## 0. Install and version constraints
 
 Thelia 3 is installed from tagged releases, not from a development branch:
 
 ```bash
-composer create-project thelia/thelia-project my-shop
-```
-
-While `3.0.0-beta1` is the only tag, add `--stability=beta`, or target the version explicitly:
-
-```bash
-composer create-project thelia/thelia-project:^3.0.0-beta1 my-shop
+composer create-project --stability=beta thelia/thelia-project my-shop
 ```
 
 Constraints for an existing project:
 
 | Package | Constraint |
 |---|---|
-| `thelia/core`, `thelia/thelia-project` | `^3.0.0-beta1` |
-| Templates (`thelia/flexy`, back-office, email, PDF) | `^1.0.0-beta1` |
+| `thelia/core` | `^3.0.0-beta` |
+| Templates (`thelia/flexy`, back-office, email, PDF) | `^1.0.0-beta` |
 | `thelia/*-module` | the module's current major |
 
 The project `composer.json` also needs `"minimum-stability": "beta"` and `"prefer-stable": true` until a stable release is tagged.
 
-`THELIA_VERSION` is `3.0.0-beta1`. The announced PHP matrix is 8.3; 8.4 support is being validated in CI.
+Current tags: `3.0.0-beta3` for `thelia/thelia`, `thelia/core` and `thelia/setup`; `3.0.0-beta5` for the `thelia/thelia-project` skeleton. Each template moves on its own track: Flexy `1.0.0-beta7`, default-twig back-office `1.0.0-beta7`, PDF `1.0.0-beta6`, legacy back and email `1.0.0-beta4`. PHP 8.3 and 8.4 are both supported.
+
+**Composer needs a GitHub token.** Without one, Flex cannot reach `thelia/thelia-recipes`, silently falls back to auto-generated recipes, never writes Thelia's `config/packages/*.yaml`, and the install dies far downstream on `You must either configure a "public_key" or a "secret_key"`. See the `thelia3-tooling` skill.
+
+The live branch of `thelia/thelia`, `thelia/docs` and the `thelia-templates/*` repos is `main`. The old `twig` branch is frozen.
 
 ## 1. Decision router - "I want to..."
 
@@ -77,7 +75,9 @@ The project `composer.json` also needs `"minimum-stability": "beta"` and `"prefe
 | i18n DB data | Propel `i18n` behavior + `setLocale()->getTitle()` | modules.md |
 | i18n UI strings | `MyModule/I18n/{locale}.php` + `Translator::trans('msg', [], 'mymodule')` | modules.md |
 | Override a theme template | place in `{module}/templates/frontOffice/flexy/` | front-office.md |
-| Compile assets | Webpack Encore (`npm run build`) - NOT Vite | front-office.md |
+| Hide a root template from the front catch-all | list it under `internal:` in the theme's `config/views.yaml` | front-office.md |
+| Add a section to the customer data export | implement `CustomerPersonalDataProviderInterface` (auto-tagged) | code-patterns.md |
+| Compile front assets | AssetMapper (`importmap.php`) + Tailwind CLI - `bin/install` runs both | front-office.md |
 | Distribute via Composer | `"type": "thelia-module"` + `thelia/installer` + `extra.installer-name` | modules.md |
 | Migrate a T2 module | see the dedicated guide | See thelia3-module-migration skill |
 
@@ -172,7 +172,8 @@ final class MyModule extends BaseModule
 - Twig: `resources('/api/front/...')`, `attr('product', 'id')`, `getForm(name)`, `hook(name)`, `theme_hook(name, params)`, `path(routeId)`.
 - Facades in LiveComponents: `CartFacade`, `CustomerFacade`, `OrderFacade`, `CheckoutFacade`.
 - Template overrides: place in `{module}/templates/frontOffice/flexy/`.
-- Assets: Webpack Encore + Tailwind. Turbo/Mercure are ABSENT.
+- Assets: AssetMapper + Tailwind CLI, no Node build for the theme. Turbo/Mercure are ABSENT.
+- The theme carries the front catch-all route `/{_view}` (`FlexyBundle\Controller\ViewController`), which serves categories, products, contents and folders. No `thelia/front-module` is involved.
 - Details: [references/front-office.md](references/front-office.md)
 
 ### 3.4 Events and back-office extensions
@@ -276,7 +277,6 @@ When working on a module, these patterns are more modern but not yet standard Th
 - DTO mapping: manual transformations -> `ObjectMapper` SF 7.3
 - Web security: Thelia `SecurityContext` + `checkAuth()` -> Symfony Voters + `#[IsGranted]` (Propel profile integration to design)
 - AP serialization perf: `JsonStreamer` SF 7.3 on large collections
-- Bundler: Webpack Encore -> Vite (current ecosystem)
 - Front interactivity: LiveComponents only -> Turbo Drive + Streams + Mercure (real-time)
 
 ## 7. Essential vocabulary
@@ -295,7 +295,13 @@ When working on a module, these patterns are more modern but not yet standard Th
 - `SearchFilter` / `OrderFilter` / `BooleanFilter` / `RangeFilter` / `NotInFilter` / `DateFilter` - Thelia filters (`#[ApiFilter]`)
 - `#[Relation]` / `#[Column]` / `#[CompositeIdentifiers]` - Propel bridge attributes
 - `DataAccessService::resources()` / `AttributeAccessService::attribute*()` - internal AP bypass + contextual attributes
-- `FlexyBundle`; Twig namespaces `@components`, `@UiComponents`, `@assets`, `@formTwig`, `@{Module}Module`
+- `FlexyBundle`; Twig namespaces `@Flexy` (components), `@FlexyForm` (form theme), `@{Module}Module`
+- `FlexyBundle\Components\` on the theme's `components/`; empty TwigComponent name prefix, so attributes are written bare
+- `FlexyBundle\Controller\ViewController` - theme-owned front catch-all `/{_view}`
+- `InternalViewsDeclaration` / `ViewRenderer` / theme `config/views.yaml` - internal views excluded from the catch-all
+- `ignore_thelia_view` - route default opting out of themed view rendering
+- `CustomerPersonalDataProviderInterface` / `CustomerPersonalDataExportEvent` - module sections in the customer data export
+- `CustomerCodeManager::requestCode()` - rate-limited activation code resend
 - `AsLiveComponent` / `AsTwigComponent`; `LiveProp` / `LiveAction` / `LiveListener` / `LiveArg` / `PreMount` / `PostMount` / `ExposeInTemplate`
 - `ComponentToolsTrait` (`emit`, `dispatchBrowserEvent`); `ComponentWithFormTrait` (`instantiateForm`, `submitForm`); `DefaultActionTrait`
 - `CartFacade`, `CustomerFacade`, `CheckoutFacade`, `OrderFacade` - domain facades

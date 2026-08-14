@@ -81,11 +81,17 @@
 | `FlexyBundle` | SF bundle for the active theme |
 | `active-front-template` | DB key for the current theme |
 | `%thelia_front_template%` | SF parameter for the active theme |
-| `@components` | Twig namespace - `templates/frontOffice/{theme}/components/` |
-| `@UiComponents` | Twig namespace - `templates/frontOffice/{theme}/src/UiComponents/` |
-| `@assets` | Twig namespace - `templates/frontOffice/{theme}/assets/` |
-| `@formTwig` | Twig namespace - `templates/frontOffice/{theme}/form/` |
+| `@Flexy` | Twig namespace - `templates/frontOffice/{theme}/components/` |
+| `@FlexyForm` | Twig namespace - `templates/frontOffice/{theme}/form/` |
 | `@{Module}Module` | Twig namespace for module templates |
+| `FlexyBundle\Components\` | PSR-4 root on the theme's `components/`; TwigComponent `name_prefix` is empty |
+| `flexy_form_themes` | Twig global listing the Flexy form theme; opt in with `{% form_theme form with flexy_form_themes only %}` |
+| `ViewController` | Theme-owned front catch-all `/{_view}`, route `flexy_view`, delegates to `DefaultController::noAction()` |
+| `ComponentContextExtension` | Supplies `provide()` / `inject()` on PHP 8.3, where ux-twig-component resolves to 2.x |
+| `config/views.yaml` | Theme file declaring internal views (root templates that are not pages) |
+| `InternalViewsDeclaration` | Reads `config/views.yaml`; `ViewRenderer` 404s a request naming an internal view |
+| `importmap.php` | AssetMapper entrypoints and vendor packages (replaces Webpack Encore) |
+| `ignore_thelia_view` | Route default opting a route out of themed view rendering (`/_components` needs it) |
 | `#[AsLiveComponent]` | Interactive Ajax component |
 | `#[AsTwigComponent]` | Static component |
 | `#[LiveProp]` | LiveComponent property (writable, url, etc.) |
@@ -216,7 +222,7 @@
 | `THELIA_LIB` | `core/lib/` |
 | `THELIA_WEB_DIR` | Public directory (`web/` or `public/`) |
 | `THELIA_TEMPLATE_DIR` | `templates/` |
-| `THELIA_VERSION` | `'3.0.0-beta1'` |
+| `THELIA_VERSION` | `'3.0.0-beta3'` (`TheliaKernel::THELIA_VERSION`) |
 | `Translator::getInstance()` | Singleton - prefer injected `TranslatorInterface` |
 | `Thelia\Core\Translation\Translator` | Alias of injected `TranslatorInterface`; default domain **`core`**; missing key -> raw string (`strtr`). Distinct from Symfony `translator` service (Twig `\|trans`, domain `messages`) |
 | `URL::getInstance()` | Singleton - same |
@@ -239,3 +245,5 @@
 | `TheliaEvents::FORM_AFTER_BUILD` / `FORM_BEFORE_BUILD` | Form extension |
 | `TheliaEvents::MODULE_TOGGLE_ACTIVATION` | Module activation |
 | `TheliaEvents::CART_SET_POSTAGE` | Postage (replaces deprecated `ORDER_SET_POSTAGE`) |
+| `TheliaEvents::CUSTOMER_PERSONAL_DATA_EXPORT` / `CUSTOMER_ANONYMIZE` | Customer data export / anonymization; modules answer via `CustomerPersonalDataProviderInterface` |
+| `TheliaEvents::VIRTUAL_PRODUCT_ORDER_DOWNLOAD_RESPONSE` | Virtual product file download; the delivery module supplies the response |

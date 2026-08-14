@@ -1,26 +1,65 @@
 # Front-office Flexy and Symfony UX - Thelia 3
 
-> Front 100% Twig (Flexy bundle). Stack: Webpack Encore 4 + Tailwind 3.4 + Stimulus 3.2 + LiveComponent 2.31 + TwigComponent. Turbo and Mercure are ABSENT.
+> Front 100% Twig (Flexy bundle). Stack: AssetMapper + Tailwind CLI v4 + Stimulus + LiveComponent + TwigComponent. Mercure is ABSENT; Turbo ships but Drive is off by default (`Turbo.session.drive = false`), opted into per link with `data-turbo="true"`.
 
 ## 1. FlexyBundle and template overrides
 
-`FlexyBundle extends AbstractBundle` (`vendor/thelia/flexy/src/FlexyBundle.php:23`). Loads `FlexyBundle\` from `THELIA_TEMPLATE_DIR/frontOffice/{theme}/src/` and `FlexyBundle\UiComponents\` from `src/UiComponents/`. Active theme read via `ConfigQuery::read('active-front-template', 'default')` (default `flexy`), exposed as Symfony parameter `%thelia_front_template%` (`TheliaKernel.php:175-179`).
+`FlexyBundle extends AbstractBundle` (`src/FlexyBundle.php`). It registers two PSR-4 roots: `FlexyBundle\` on the theme's `src/` and `FlexyBundle\Components\` on the theme's `components/`. Active theme read via `ConfigQuery::read('active-front-template', 'default')` (default `flexy`), exposed as Symfony parameter `%thelia_front_template%`.
 
-Flexy Twig namespaces (`vendor/thelia/flexy/config/packages/twig.yaml`):
+Almost all of the theme's Symfony configuration is done in `FlexyBundle::prependExtension()` rather than in `config/packages/*.yaml`: Twig paths and globals, TwigComponent defaults, AssetMapper paths, UX Icons, Tailwind, Stimulus controller paths.
+
+Flexy Twig namespaces - there are only two:
 
 | Namespace | Target | Content |
 |---|---|---|
-| `@components` | `templates/frontOffice/{theme}/components/` | Atoms / Molecules / Organisms / Layout / Page |
-| `@UiComponents` | `templates/frontOffice/{theme}/src/UiComponents/` | PHP-backed components (LiveComponent / TwigComponent) |
-| `@assets` | `templates/frontOffice/{theme}/assets/` | Images / icons / vendors |
-| `@formTwig` | `templates/frontOffice/{theme}/form/` | Form theme |
-| `@{ModuleCode}Module` | `{module}/Template/` or `{module}/templates/` | Module-specific Twig templates |
+| `@Flexy` | `templates/frontOffice/{theme}/components/` | All components (PHP-backed and anonymous) |
+| `@FlexyForm` | `templates/frontOffice/{theme}/form/` | Form theme |
+| `@{ModuleCode}Module` | `{module}/Template/` or `{module}/templates/` | Module-specific Twig templates (registered by the kernel, not by Flexy) |
 
-Module override: place `{module}/templates/frontOffice/flexy/mytemplate.html.twig`. The kernel scans `{module}/templates/{templateSubdir}/` at boot (`TheliaKernel.php:835-900`) and adds via `addPath()` to the TwigParser `FilesystemLoader` **after** the active theme (`TwigParser.php:146-149`).
+The old `@components`, `@UiComponents`, `@assets` and `@formTwig` namespaces are gone, along with the `src/UiComponents/` directory they pointed at.
+
+### The theme owns the front catch-all route
+
+Flexy no longer depends on `thelia/front-module` (a Thelia 2 package with no 3.x release). The theme itself declares the catch-all in `FlexyBundle\Controller\ViewController`, which extends the core `Thelia\Controller\Front\DefaultController`:
+
+```php
+#[Route(
+    '/{_view}',
+    name: 'flexy_view',
+    requirements: ['_view' => '^(?!admin|api)[^/]+'],
+    defaults: ['_view' => 'index'],
+    priority: -1000,
+)]
+public function view(Request $request): void
+{
+    $this->noAction($request);
+}
+```
+
+This one route serves categories, products, contents and folders. `priority: -1000` makes it match last, and the requirement keeps `/admin` and `/api` out.
+
+### `config/views.yaml`: root templates that are not pages
+
+A theme's `config/views.yaml` declares its *internal* views - root templates that exist only to be extended, or that render only with the context a controller prepares. Read by `Thelia\Core\Template\InternalViewsDeclaration` and enforced in `ViewRenderer`.
+
+```yaml
+internal:
+    - base            # layouts, only ever extended
+    - checkout-base
+    - '404'           # quote it: unquoted, YAML reads an integer and the core rejects it
+    - account         # controller checks auth and resolves the entity
+    - checkout-cart   # each step guarded by the cart state its controller checks
+```
+
+Asking for one of these by name through the catch-all returns 404 instead of a half-rendered page. A controller rendering the same template is unaffected - only requests that *name* a view are filtered. The file is optional: absent, nothing is filtered. A malformed `internal:` key throws a `TemplateException` at boot rather than failing silently.
+
+### Module template overrides
+
+Place `{module}/templates/frontOffice/flexy/mytemplate.html.twig`. The kernel scans `{module}/templates/{templateSubdir}/` at boot and adds it via `addPath()` to the TwigParser `FilesystemLoader` **after** the active theme.
 
 Priority: active theme -> parents -> modules (activation order) -> `default`.
 
-To force priority: `addTemplateDirectory(..., $unshift = true)` (`ParserTemplateTrait.php:78-85`) - not natively exposed, requires event listener.
+To force priority: `addTemplateDirectory(..., $unshift = true)` - not natively exposed, requires an event listener.
 
 Cache: `var/cache/{env}/module_template_dirs.php` - not auto-invalidated on activation/deactivation outside `module:post-activate-all`. Clear as needed.
 
@@ -74,17 +113,39 @@ Extensions from TwigEngine (`vendor/thelia/modules/TwigEngine/Extension/`):
 
 Synchronous, internal AP call. Do NOT call inside a Twig loop without caching.
 
-## 4. LiveComponents
+## 4. Component naming and layout
 
-`symfony/ux-live-component` 2.31. Attribute `#[AsLiveComponent]` + PHP class.
+Components live in the theme's `components/` directory under `FlexyBundle\Components\`, grouped as `Atoms`, `Fields`, `Forms`, `Layouts`, `Molecules`, `Organisms`, `Toolkit`. Each component is a directory holding its PHP class, its Twig template, its CSS and, when it needs one, its Stimulus controller.
+
+TwigComponent is configured with `name_prefix: ''` (empty) and `template_directory: '@Flexy'`, so **the attributes are written bare** and the name and template are both derived from the class path:
 
 ```php
+namespace FlexyBundle\Components\Molecules\Button;
+
+#[AsTwigComponent]
+class Base { /* ... */ }
+```
+
+`FlexyBundle\Components\Molecules\Button\Base` is then used as `<twig:Molecules:Button:Base>`. Never pass `name:` or `template:` explicitly in this theme - no component in Flexy does.
+
+```twig
+<twig:Layouts:Header:Base />
+<twig:Molecules:Breadcrumb:Base :items="breadcrumb" />
+```
+
+## 5. LiveComponents
+
+Attribute `#[AsLiveComponent]` + PHP class, same bare-attribute convention.
+
+```php
+namespace FlexyBundle\Components\Organisms\Cart;
+
 use Symfony\UX\LiveComponent\Attribute\{AsLiveComponent, LiveAction, LiveArg, LiveListener, LiveProp};
 use Symfony\UX\LiveComponent\{ComponentToolsTrait, ComponentWithFormTrait, DefaultActionTrait};
 use Thelia\Domain\Cart\CartFacade;
 
-#[AsLiveComponent(name: 'Flexy:Checkout:Cart', template: '@UiComponents/Checkout/Cart/Cart.html.twig')]
-class Cart
+#[AsLiveComponent]
+class Base
 {
     use DefaultActionTrait;
     use ComponentToolsTrait;       // emit() + dispatchBrowserEvent()
@@ -121,15 +182,17 @@ Patterns:
 
 **Anti-pattern**: `extends BaseFrontController` to access `requestStack` - inject the service directly in the constructor instead.
 
-## 5. TwigComponents
+## 6. TwigComponents
 
-`symfony/ux-twig-component`. Stateless, no Ajax.
+`symfony/ux-twig-component` (`^2.36 || ^3.1`). Stateless, no Ajax.
 
 ```php
+namespace FlexyBundle\Components\Molecules\ProductCard;
+
 use Symfony\UX\TwigComponent\Attribute\{AsTwigComponent, ExposeInTemplate, PostMount, PreMount};
 
-#[AsTwigComponent(name: 'Flexy:ProductCard', template: '@UiComponents/ProductCard/ProductCard.html.twig')]
-class ProductCard
+#[AsTwigComponent]
+class Base
 {
     public ?int $productId = null;
     public ?array $product = null;
@@ -156,18 +219,22 @@ class ProductCard
 
 Twig invocation:
 ```twig
-{{ component('Flexy:ProductCard', {productId: 42}) }}
-{# Or direct include for static @components templates #}
-{{ include('@components/Organisms/CategoryCard/CategoryCard.html.twig', category) }}
+<twig:Molecules:ProductCard:Base :productId="42" />
+{# Anonymous components resolve against @Flexy too #}
+{{ include('@Flexy/Organisms/CategoryCard/Base.html.twig', category) }}
 ```
-
-`twig_component.yaml`: `FlexyBundle\Twig\:` with `name_prefix: Flexy`.
 
 **Trap**: calling `DataAccessService` in `mount()` = synchronous internal AP call on every inclusion. No native cache. For lists, pass data from the parent.
 
-## 6. Stimulus
+### `provide()` / `inject()` on PHP 8.3
 
-`@symfony/stimulus-bridge` 3.2 + `@hotwired/stimulus` 3.2. Convention: `{name}_controller.{js|ts}` -> identifier `{name}`.
+`symfony/ux-twig-component` ships `provide()` and `inject()` from 3.0 on, but 3.0 requires PHP 8.4. On PHP 8.3 Composer resolves the 2.x line, where those functions do not exist, and every compound component fails to render. The theme fills the gap itself with `FlexyBundle\Twig\ComponentContextExtension`, which registers the two functions and then returns nothing when `symfony/ux-twig-component >= 3.0` is installed, so the package's own implementation always wins on 8.4. Backing store `FlexyBundle\Twig\ComponentContext` keeps a stack of frames pushed on `PreRenderEvent` and popped on `PostRenderEvent`; `inject()` walks it innermost-first, so a provided value is scoped to the providing component and its subtree.
+
+Do not add your own `provide`/`inject` Twig functions in a module: you would collide with one of the two implementations depending on the PHP version in use.
+
+## 7. Stimulus
+
+Convention: `{name}_controller.js` -> identifier `{name}`. Controllers live in two places: shared ones in `assets/controllers/`, component-specific ones next to their component in `components/`. Both directories are registered as `stimulus.controller_paths`.
 
 Twig activation: `stimulus_controller('product')` (SF UX helper).
 
@@ -201,7 +268,7 @@ export default class extends Controller {
 - **URL template + route with regex constraint**: `path('route', {x: 'PLACEHOLDER'})` throws `InvalidParameterException` at **Twig render time** if the route declares a `requirement` on `x`. Pass a **valid** value as anchor (e.g. `'image'` for `image|document|virtual`) then substitute on the JS side on a slash-delimited segment (`url.replace('/image/', '/'+value+'/')`).
 - **Module front + Stimulus**: the theme loads its own `Application` via `@symfony/stimulus-bridge`. A module that starts a second `Application.start()` (`@hotwired/stimulus`) conflicts (double-loading of the same controller). Prefer vanilla JS, or register the controller in the theme's existing app.
 
-## 7. Domain facades
+## 8. Domain facades
 
 `core/lib/Thelia/Domain/{Cart,Customer,Checkout,Order}/`. Single entry point for cart/checkout/auth mutations.
 
@@ -223,7 +290,7 @@ When to use a Facade vs direct Propel:
 | Import/export scripts, CLI | Direct Propel (`XxxQuery::create()`) |
 | LiveComponents | Facade |
 
-## 8. Mailing and PDF
+## 9. Mailing and PDF
 
 Emails: Twig templates in `templates/email/default/` (`.html.twig` + `.txt.twig`), resolved by `TwigParser`. Module override: `{module}/templates/email/default/`. The `message` table row points at the files through `html_template_file_name` / `text_template_file_name`.
 
@@ -231,30 +298,42 @@ PDF: Twig templates in `templates/pdf/default/` (admin invoices and delivery sli
 
 Both template sets are Twig in Thelia 3. A `.html` (non-Twig) email or PDF template is a Thelia 2 leftover.
 
-## 9. Assets - Webpack Encore + Tailwind
+## 10. Forms and the form theme
 
-Stack:
-- Bundler: Webpack Encore 4.0 (NOT Vite)
-- CSS: PostCSS + Tailwind CSS 3.4 + `postcss-nested` + `postcss-rem`
-- TS: `ts-loader` 9.5
-- React: Babel preset-react + `@symfony/ux-react` 2.31
-- Stimulus: `@symfony/stimulus-bridge` 3.2 + `lazy-controller-loader`
+Flexy's form theme is `@FlexyForm/flexy_form_theme.html.twig`. It is **not** registered as a global `twig.form_themes` entry, on purpose: a global theme would also restyle the back-office forms. Instead the bundle exposes a Twig global, `flexy_form_themes`, and every template opts in explicitly:
 
-Commands:
-```bash
-ddev exec bash -c "cd templates/frontOffice/flexy && npm install && npm run build"
-# Variants: npm run watch (encore dev --watch), npm run dev (encore dev)
+```twig
+{% form_theme form with flexy_form_themes only %}
 ```
 
-`composer update` on a theme deletes its compiled `dist/`, and the next render fails with "Could not find the entrypoints file from Webpack". Rebuild after every theme update.
+The `only` keyword keeps anything else out. The back-office does the same with its own `bo_form_themes` global. Consequence: a front-office form rendered without that tag gets Symfony's bare default markup, not Flexy widgets. Put the tag inside the rendered block, before `form_start`.
 
-Public path: `/templates-assets/frontOffice/{theme}/dist`, symlinked by `EncoreExtension` at kernel boot (guard `!is_dir($dest)`). In production, `THELIA_WEB_DIR/templates-assets/` must be writable.
+## 11. Assets - AssetMapper + Tailwind CLI
 
-Tailwind `tailwind.config.js`: custom CSS tokens (`var(--theme)`, `var(--theme-dark)`) -> theming without rebuild. Content scanned: `components/**/*.twig`, `src/UiComponents/**/*.twig`, `form/**/*.twig`, `*.twig`.
+There is **no bundler, no `package.json`, no `webpack.config.js` and no `node_modules`** in the theme. Webpack Encore is gone, and so is `@symfony/ux-react`.
 
-## 10. Custom module components
+- JavaScript: AssetMapper. The theme's `importmap.php` declares the `app` entrypoint (`assets/app.js`) and its vendor packages (Stimulus, `@symfony/ux-live-component`, `@symfony/ux-translator`, Turbo, Leaflet, Splide). `importmap:install` downloads them into `assets/vendor/` (git-ignored).
+- CSS: `symfonycasts/tailwind-bundle` drives a standalone Tailwind v4 binary. `tailwind:build` compiles `assets/styles/app.css`, which is the config: Tailwind v4 is CSS-first, so there is no `tailwind.config.js`. Because the theme directory is git-ignored from the project root, the scanned paths are declared explicitly with `@source` (`components`, `partials`, `form`, `blocks`, root `*.html.twig`).
+- Icons: `symfony/ux-icons`, reading `assets/icons/`.
+- Class merging: `tales-from-a-dev/twig-tailwind-extra`, with custom class groups configured in the theme.
 
-Registering components directly under `FlexyBundle\UiComponents\` (which points to `{theme}/src/UiComponents/`) is not possible for a third-party module.
+`bin/install` runs `importmap:install` then `tailwind:build` itself when those commands exist, so a fresh install needs no manual front-office asset step. Only the back-office theme still needs `npm install && npm run build`.
+
+Public output is AssetMapper's, under `/assets/frontOffice/{theme}/`. The old `templates-assets/{theme}/dist` symlink and the `<assets>dist</assets>` entry in `template.xml` no longer apply to Flexy.
+
+## 12. Virtual product download
+
+Flexy serves virtual product files from the customer account:
+
+```
+GET /account/order/download/{orderProductId}     route: account_order_download
+```
+
+`FlexyBundle\Controller\AccountOrderController::downloadVirtualProduct` checks authentication, verifies the order product belongs to the current customer and that the order is paid, then dispatches `TheliaEvents::VIRTUAL_PRODUCT_ORDER_DOWNLOAD_RESPONSE` with a `VirtualProductOrderDownloadResponseEvent`. The response comes from whichever module answers (VirtualProductDelivery in a standard install); if none does, the route 404s. A module implementing its own virtual delivery listens to that event and calls `setResponse()`.
+
+## 13. Custom module components
+
+A third-party module cannot register components under `FlexyBundle\Components\`, which is bound to the active theme's `components/` directory.
 
 Canonical option: create a Symfony Bundle for the module with `loadExtension()` that loads a separate namespace + a `config/packages/twig.yaml` in the bundle declaring a dedicated Twig namespace.
 
@@ -262,7 +341,7 @@ Canonical option: create a Symfony Bundle for the module with `loadExtension()` 
 # {module}/config/packages/twig.yaml
 twig:
   paths:
-    "%kernel.project_dir%/local/modules/MyModule/templates/UiComponents": MyModuleComponents
+    "%kernel.project_dir%/local/modules/MyModule/templates/components": MyModuleComponents
 ```
 
 ```php
@@ -270,15 +349,15 @@ twig:
 class MyCard { /* ... */ }
 ```
 
-Simple option (theme coupling): place in `templates/frontOffice/flexy/src/UiComponents/`.
+Simple option (theme coupling): place the component in the active theme's `components/` directory.
 
-## 11. Sitemap
+## 14. Sitemap
 
 Flexy exposes `GET /sitemap` and `GET /sitemap.xml` (alias) via `FlexyBundle\Controller\SitemapController`. Rendering goes through `FlexyBundle\Service\SitemapGenerator`, cache-backed on `thelia.cache` (TTL configurable via `ConfigQuery::read('sitemap_ttl', '7200')`). The `sitemap.html.twig` template lives at the root of the active theme and consumes `resources('/api/front/{categories,products,folders,contents}', {'visible': 1})`. Accepted parameters: `?lang=<code>` (404 if unknown lang), `?context=catalog|content` (404 if other value), `?flush=1` to force cache regeneration.
 
 To customize: override `sitemap.html.twig` in the child template, or inject `SitemapGenerator` in a module controller to wrap the render (custom URL addition, multi-file sitemap).
 
-## 12. Traps
+## 15. Traps
 
 | Trap | Fix |
 |---|---|
@@ -287,7 +366,11 @@ To customize: override `sitemap.html.twig` in the child template, or inject `Sit
 | `getCartFromSession()` can be null | `getOrCreateFromSession()` for writes |
 | `getComponent()` Stimulus without `await` | always `await getComponent(this.element)` |
 | Stale `module_template_dirs.php` cache | `cache:clear` after activation |
-| Missing `templates-assets/{theme}/dist` symlink | first boot, guard `!is_dir($dest)` |
 | `extends BaseFrontController` in LiveComponent | inject `requestStack` directly |
 | `resources()` call in Twig `mount()` without cache | pass data from parent or cache |
 | `active-front-template` = non-existent directory | always a valid `flexy` value in DB |
+| LiveComponents answer 404 | `/_components` route needs `defaults: ignore_thelia_view: true` |
+| Front page 500 right after install | `importmap:install` / `tailwind:build` did not run - assets missing |
+| `provide()` / `inject()` undefined on PHP 8.3 | ux-twig-component resolves to 2.x; the theme's `ComponentContextExtension` supplies them - do not add your own |
+| Component named with `name:` or `template:` | prefix is empty and the template is derived from the class path - write the attribute bare |
+| A form rendering as bare Symfony markup | no theme is global any more; add `{% form_theme form with flexy_form_themes only %}` |
