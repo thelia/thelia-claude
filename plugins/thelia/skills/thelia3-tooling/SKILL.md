@@ -1,6 +1,6 @@
 ---
 name: thelia3-tooling
-description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, and rebuilding a theme's compiled assets after composer update. Use when a Thelia command, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
+description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, front-office assets built by bin/install versus the back-office theme built by hand, a missing GitHub token that fails an install with an unrelated error, and LiveComponents answering 404. Use when a Thelia command, an install, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
 ---
 
 # Thelia 3 tooling
@@ -32,12 +32,39 @@ A deprecated attribute in `phpunit.xml` (for example `cacheResultFile`, or the o
 
 If the dev and test environments share the same `config/jwt/` keypair but use different passphrases, the API test suite cannot decrypt the key and reports `bad decrypt`. The fix is to regenerate the keypair without a passphrase, so the unencrypted key loads in both environments. Suspect this before any application bug when the API suite turns red right after a restart or a test database rebuild.
 
-## composer update deletes a theme's compiled assets
+## Which theme assets are built for you, and which are not
 
-Running `composer update` on a Thelia theme removes its compiled `dist/` directory. The next page render then throws a Twig error such as "Could not find the entrypoints file from Webpack". Rebuild the assets locally after an update:
+`bin/install` builds the front-office assets itself: it runs `importmap:install` then `tailwind:build` when those commands exist. Flexy is an AssetMapper plus Tailwind CLI theme, so there is no `npm install` and no bundler step to run by hand.
+
+The back-office theme is the exception. Its compiled `dist/` is gitignored and therefore absent from the published package, so it has to be built once:
 
 ```bash
-cd templates/frontOffice/<theme> && npm install && npm run build
+cd templates/backOffice/default-twig && npm install && npm run build
 ```
 
-CI usually recreates `dist/` at deploy time, so the committed change is the lockfile, not the build output.
+An admin that renders with no styling is this missing build, not a broken configuration. Rebuild it after a `composer update` on the theme too, since the update replaces the package directory and takes `dist/` with it.
+
+## A missing GitHub token fails an install on an unrelated message
+
+Composer needs a GitHub token to fetch `thelia/thelia-recipes`. Without one, Symfony Flex does not stop: it falls back to auto-generated recipes, so Thelia's `config/packages/*.yaml` files are never written. The install proceeds and dies much later on a message that names none of this:
+
+```
+You must either configure a "public_key" or a "secret_key"
+```
+
+Check Composer's authentication and the contents of `config/packages/` before reading that message literally.
+
+## LiveComponents return 404
+
+The `/_components` route must carry `ignore_thelia_view: true` in its defaults. Without it, `Thelia\Core\EventListener\ViewListener` answers `kernel.view` with a themed view, `/_components/...` matches no front-office view, and every LiveComponent round-trip answers 404. The current `thelia/thelia-recipes` recipe sets it, but Flex never rewrites a routing file that already exists, so a project created before it keeps the old one:
+
+```yaml
+# config/routes/ux_live_component.yaml
+live_component:
+    resource: '@LiveComponentBundle/config/routes.php'
+    prefix: '/_components'
+    defaults:
+        ignore_thelia_view: true
+```
+
+The same flag is the general opt-out from Thelia's view rendering: any route whose controller returns something the theme should not wrap needs it in its defaults. Nothing in the core ever sets it; it comes from route configuration only.
