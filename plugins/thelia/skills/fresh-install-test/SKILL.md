@@ -23,9 +23,26 @@ Reusable validation protocol for a clean Thelia 3 installation. Run it after any
 
 - DDEV installed and running
 - SSH access to the GitHub repos under `thelia/*` for the dev-repo scenario
+- **A GitHub token available to Composer** (see the trap below). Without it the install fails, and the error message points nowhere near the cause.
 - The target workspace directory must be empty (the protocol deletes and recreates it)
 
-Thelia 3 ships as tagged releases; there is no development branch to install from. Test 1 clones the development repository, whose default branch is `main`. Test 2 installs the published packages. While `3.0.0-beta1` is the newest tag, the skeleton needs `--stability=beta` (or an explicit `thelia/thelia-project:^3.0.0-beta1`), and a project's own `composer.json` needs `"minimum-stability": "beta"` with `"prefer-stable": true`.
+Thelia 3 ships as tagged releases; there is no development branch to install from. Test 1 clones the development repository, whose live branch is `main`. Test 2 installs the published packages. The skeleton needs `--stability=beta` (or an explicit version), and a project's own `composer.json` needs `"minimum-stability": "beta"` with `"prefer-stable": true`.
+
+Current tags: `3.0.0-beta3` for `thelia/thelia`, `thelia/core` and `thelia/setup`; `3.0.0-beta5` for `thelia/thelia-project`. Each template moves on its own track: Flexy `1.0.0-beta7`, default-twig back-office `1.0.0-beta7`, PDF `1.0.0-beta6`, legacy back and email `1.0.0-beta4`. The skeleton and the templates are versioned independently of the core, so do not expect the numbers to line up.
+
+### Trap: a missing GitHub token fails the install far from its cause
+
+Composer needs a GitHub token to reach `thelia/thelia-recipes`. Without one, Symfony Flex does not fail loudly: it falls back to auto-generated recipes, so none of Thelia's `config/packages/*.yaml` files are ever written. The install then dies much later on an unrelated-looking message:
+
+```
+You must either configure a "public_key" or a "secret_key"
+```
+
+Symptom and cause have nothing in common. Before debugging that message, check that `config/packages/` holds Thelia's own configuration files and that Composer is authenticated:
+
+```bash
+composer config --global --list | grep github-oauth   # or check auth.json / COMPOSER_AUTH
+```
 
 ---
 
@@ -37,7 +54,8 @@ Thelia 3 ships as tagged releases; there is no development branch to install fro
 WORKSPACE=<path-to-your-workspace>
 
 PROJECT=thelia-3
-BRANCH=main  # replace with the branch or tag you want to test
+BRANCH=main  # the live branch; replace with a tag to test a release
+             # `twig` is a frozen legacy branch, do not test against it
 
 # 1. Full cleanup
 ddev stop --unlist $PROJECT 2>/dev/null
@@ -72,10 +90,10 @@ ddev exec php bin/install \
 #   "N module(s) post-activated." (count varies with installed modules)
 #   "User thelia successfully created."
 #   No "ERROR:" lines anywhere
+#   The front-office assets built by bin/install itself (importmap:install, then tailwind:build)
 
-# 6. Build the Flexy front-end theme
-ddev exec bash -c "cd templates/frontOffice/flexy && npm install && npm run build"
-# Expected: "webpack compiled successfully"
+# 6. Build the back-office theme (bin/install does NOT do this one)
+ddev exec bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
 
 # 7. Verify the home page
 curl -sk https://$PROJECT.ddev.site/ | wc -c
@@ -106,6 +124,7 @@ ddev exec php bin/console debug:container --deprecations | head -3
 
 - [ ] Install completes with zero errors
 - [ ] 4x "Theme ready !" in install output
+- [ ] Front-office assets built by `bin/install`; back-office assets built manually
 - [ ] Home page returns more than 50 KB with demo products and images
 - [ ] Admin login page is accessible
 - [ ] Symfony 7.4.x reported
@@ -131,7 +150,7 @@ rm -rf "$WORKSPACE/$PROJECT"
 # 2. Create the project from the tagged release
 cd "$WORKSPACE"
 composer create-project --stability=beta thelia/thelia-project $PROJECT
-# Equivalent, pinned: composer create-project thelia/thelia-project:^3.0.0-beta1 $PROJECT
+# Equivalent, pinned: composer create-project thelia/thelia-project:3.0.0-beta5 $PROJECT
 cd $PROJECT
 
 # 3. Configure DDEV (MariaDB version can vary by host)
@@ -151,8 +170,8 @@ ddev exec php bin/install \
   --admin_first_name=thelia --admin_last_name=thelia \
   --admin_email=thelia@example.com
 
-# 6. Build the Flexy front-end theme
-ddev exec bash -c "cd templates/frontOffice/flexy && npm install && npm run build"
+# 6. Build the back-office theme (the front-office assets are already built by bin/install)
+ddev exec bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
 
 # 7. Verify the home page
 curl -sk https://$PROJECT.ddev.site/ | wc -c
@@ -170,7 +189,7 @@ ddev exec php -r 'require "vendor/autoload.php"; echo Symfony\Component\HttpKern
 - `bootstrap.php` must NOT load `vendor/autoload.php` (doing so disables the Symfony Runtime via its `require_once` guard).
 - `public/index.php` must load `bootstrap.php` first, then `vendor/autoload_runtime.php`.
 - `bin/console` passes through `vendor/thelia/core/Thelia`, not the standard Symfony pattern.
-- Constraints in the generated `composer.json`: `^3.0.0-beta1` for `thelia/core` and the skeleton, `^1.0.0-beta1` for the templates, the module's current major for `thelia/*-module`, plus `"minimum-stability": "beta"` and `"prefer-stable": true`.
+- Constraints in the generated `composer.json`: `^3.0.0-beta` for `thelia/core`, `^1.0.0-beta` for the templates, the module's current major for `thelia/*-module`, plus `"minimum-stability": "beta"` and `"prefer-stable": true`.
 
 ---
 
@@ -189,7 +208,29 @@ The most common problems encountered in modules:
 
 ---
 
+## Front-office assets: automatic; back-office assets: manual
+
+`bin/install` builds the front-office assets itself, running `importmap:install` then `tailwind:build` when those commands are available. There is nothing to run by hand for Flexy, and no `npm install` either: the theme uses AssetMapper and a Tailwind CLI binary, not Node.
+
+The back-office theme is the exception. Its compiled `dist/` is gitignored, so it ships absent from the package and has to be built once after install:
+
+```bash
+ddev exec bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
+```
+
+An admin that renders unstyled is this build missing, not a configuration problem.
+
 ## Known issues
+
+**LiveComponents return 404:** a project whose `config/routes/ux_live_component.yaml` predates the current recipe is missing `ignore_thelia_view: true` on the `/_components` route. Without it, `Thelia\Core\EventListener\ViewListener` answers `kernel.view` with a themed view, which matches no front-office view, so every LiveComponent round-trip 404s. Flex never rewrites a file that already exists, so an upgraded project keeps the old one. Add the default by hand:
+
+```yaml
+live_component:
+    resource: '@LiveComponentBundle/config/routes.php'
+    prefix: '/_components'
+    defaults:
+        ignore_thelia_view: true
+```
 
 **Blank page on thelia-project:** if `bootstrap.php` loads `vendor/autoload.php`, the Symfony Runtime silently deactivates itself because of the `require_once` guard returning `true`. Fix: load only constants in `bootstrap.php`.
 
