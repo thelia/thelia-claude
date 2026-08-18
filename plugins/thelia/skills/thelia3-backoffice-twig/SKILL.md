@@ -33,6 +33,16 @@ The back-office uses two translation systems at once, and you need to know which
 
 Both have to be populated to cover every string on a screen.
 
+You get the second one by default, and not by choice: the core aliases `Symfony\Contracts\Translation\TranslatorInterface` to `Thelia\Core\Translation\Translator`, so a constructor that type-hints the interface is wired to Thelia's translator whatever the surrounding code looks like. That translator never loaded `translations/messages.<locale>.php`, so a key defined for the templates comes back unchanged from PHP. When a service needs the same catalog the templates use, ask for the Symfony translator explicitly:
+
+```php
+public function __construct(
+    #[Autowire(service: 'translator')]
+    private readonly TranslatorInterface $translator,
+) {
+}
+```
+
 Pitfalls:
 
 - `|trans` resolves against the request locale, not the session or `default_locale`. A listener sets the request locale on `/admin` routes so the admin renders in the chosen language.

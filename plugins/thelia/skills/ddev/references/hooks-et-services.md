@@ -48,14 +48,6 @@ hooks:
     - exec: bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
 ```
 
-### Hook: Start Messenger
-
-```yaml
-hooks:
-  post-start:
-    - exec: symfony run --daemon bin/console messenger:consume async -vv
-```
-
 **Note:** `exec` commands run inside the web container. `exec-host` commands run on the host machine.
 
 ## Mailpit (email testing)

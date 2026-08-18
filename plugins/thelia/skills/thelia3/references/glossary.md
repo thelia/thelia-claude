@@ -91,7 +91,7 @@
 | `config/views.yaml` | Theme file declaring internal views (root templates that are not pages) |
 | `InternalViewsDeclaration` | Reads `config/views.yaml`; `ViewRenderer` 404s a request naming an internal view |
 | `importmap.php` | AssetMapper entrypoints and vendor packages (replaces Webpack Encore) |
-| `ignore_thelia_view` | Route default opting a route out of themed view rendering (`/_components` needs it) |
+| `ignore_thelia_view` | Route default opting a route out of themed view rendering, the admin firewall check and the themed error page (`/_components` needs it) |
 | `#[AsLiveComponent]` | Interactive Ajax component |
 | `#[AsTwigComponent]` | Static component |
 | `#[LiveProp]` | LiveComponent property (writable, url, etc.) |

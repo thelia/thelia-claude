@@ -1,6 +1,6 @@
 ---
 name: thelia3-tooling
-description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, front-office assets built by bin/install versus the back-office theme built by hand, a missing GitHub token that fails an install with an unrelated error, and LiveComponents answering 404. Use when a Thelia command, an install, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
+description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, a PHPStan config whose includes merge paths instead of replacing them, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, front-office assets built by bin/install versus the back-office theme built by hand and the extra steps a production deployment needs, a missing GitHub token that fails an install with an unrelated error, and LiveComponents answering 404. Use when a Thelia command, an install, a deployment, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
 ---
 
 # Thelia 3 tooling
@@ -24,6 +24,31 @@ PHPStan caches results, and the cache can go stale on generated Propel `Base` cl
 vendor/bin/phpstan clear-result-cache
 ```
 
+## A PHPStan `includes:` merges `paths`, it does not replace them
+
+A second PHPStan config that includes the main one inherits every parameter, and array parameters are merged rather than overwritten. Include a root config that analyses `core`, add your own `paths`, and the run analyses both: the extra config is a superset of the first, not a narrower scope.
+
+```neon
+includes:
+    - phpstan.neon      # already declares paths and a level
+parameters:
+    paths:
+        - templates/backOffice/default-twig/src
+```
+
+Scalars behave the other way round and simply override, so a config that does not restate `level` silently runs at the included one. The two combine into a gate you believe is scoped to one directory at one level while it re-analyses everything at a level someone else chose.
+
+Mark the key with `!` to replace instead of append:
+
+```neon
+parameters:
+    level: 5
+    paths!:
+        - templates/backOffice/default-twig/src
+```
+
+`vendor/bin/phpstan dump-parameters -c <config>` prints the merged result and settles the question without running an analysis. Relative paths in it resolve against the directory of the config file that declares them, not the working directory.
+
 ## PHPUnit 11 fails on deprecated XML
 
 A deprecated attribute in `phpunit.xml` (for example `cacheResultFile`, or the old `listeners` element) makes PHPUnit 11 exit with code 1 even when every test passes. Inside a `composer test` chain this looks like a test failure but is a configuration warning. Migrate the config: use `cacheDirectory`, and move listeners to `extensions` and bootstrap entries.
@@ -43,6 +68,8 @@ cd templates/backOffice/default-twig && npm install && npm run build
 ```
 
 An admin that renders with no styling is this missing build, not a broken configuration. Rebuild it after a `composer update` on the theme too, since the update replaces the package directory and takes `dist/` with it.
+
+Deploying to production adds two steps that no install script runs for you: `tailwind:build --minify` for the stylesheet, and `asset-map:compile` to write the mapped assets into the public directory. AssetMapper's dev server, which serves them on the fly during development, follows the debug flag and is off in production, so a front office deployed without the compile loads with no CSS and no JavaScript.
 
 ## A missing GitHub token fails an install on an unrelated message
 
