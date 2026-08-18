@@ -259,14 +259,14 @@ export default class extends Controller {
 }
 ```
 
-**Turbo and Mercure: ABSENT** from Flexy. Architectural choice - interactivity = LiveComponents only.
+**Mercure: ABSENT** from Flexy. Turbo ships - `@hotwired/turbo` sits in the theme's `importmap.php` and `assets/app.js` imports it - but the same file sets `Turbo.session.drive = false`, so Drive is off globally and only a zone marked `data-turbo="true"` (the checkout tunnel) navigates client-side. Everywhere else, interactivity = LiveComponents.
 
 ### Stimulus / front JS traps
 
 - **`Intl` locale**: Thelia exposes locale as `fr_FR` (underscore) but `Intl.NumberFormat`/`Intl.DateTimeFormat` require `fr-FR` (`RangeError: Invalid language tag` otherwise). Always `(document.documentElement.lang || 'fr-FR').replace('_', '-')` before instantiating.
 - **`data-*-value` JSON**: for a Stimulus `Object`/`Array` value, always `{{ data|json_encode|e('html_attr') }}`. Without `e('html_attr')`, a quote in the JSON (e.g. a product title) silently breaks the HTML attribute (Stimulus parses a partial/empty value).
 - **URL template + route with regex constraint**: `path('route', {x: 'PLACEHOLDER'})` throws `InvalidParameterException` at **Twig render time** if the route declares a `requirement` on `x`. Pass a **valid** value as anchor (e.g. `'image'` for `image|document|virtual`) then substitute on the JS side on a slash-delimited segment (`url.replace('/image/', '/'+value+'/')`).
-- **Module front + Stimulus**: the theme loads its own `Application` via `@symfony/stimulus-bridge`. A module that starts a second `Application.start()` (`@hotwired/stimulus`) conflicts (double-loading of the same controller). Prefer vanilla JS, or register the controller in the theme's existing app.
+- **Module front + Stimulus**: the theme starts its own `Application` in `assets/stimulus_bootstrap.js` via `startStimulusApp()` from `@symfony/stimulus-bundle`. A module that starts a second `Application.start()` (`@hotwired/stimulus`) conflicts (double-loading of the same controller). Prefer vanilla JS, or register the controller in the theme's existing app.
 
 ## 8. Domain facades
 
