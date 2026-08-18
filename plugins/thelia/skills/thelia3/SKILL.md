@@ -265,6 +265,9 @@ final class MyModule extends BaseModule
 | `ConfigQuery::read()` returns stale value | PSR `thelia_config` cache not invalidated by direct SQL UPDATE | `ConfigQuery::write()` or `initCacheConfigs(true)`; `php Thelia cache:clear` |
 | `SecurityContext::isGranted([A, B], ...)` | combines resources in **AND** | for OR, iterate resource by resource |
 | `_or()` Propel | switches **the entire WHERE** to OR | `condition()` + `combine([...], 'OR')` |
+| A JSON or webhook route answers a themed 404 page | `ViewListener` renders a themed view for any controller that does not return a `Response`, and `ErrorListener` turns the resulting `NotFoundHttpException` into the theme's error page | `defaults: ['ignore_thelia_view' => true]` on the route, and return a real `Response` |
+| Injected `TranslatorInterface` cannot see the theme catalog | the core aliases `TranslatorInterface` to `Thelia\Core\Translation\Translator`, which carries module and validator catalogs, not `translations/messages.<locale>.php` | `#[Autowire(service: 'translator')]` when you want the Symfony translator |
+| `app.flashes()` empty on a front page | templates rendered by `TwigParser` get a four-property `app` stub that shadows Symfony's `AppVariable` | read flashes from `app.session.flashBag` |
 
 ## 6. Symfony-native evolution candidates
 

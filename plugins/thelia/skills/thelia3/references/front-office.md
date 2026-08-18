@@ -53,6 +53,32 @@ internal:
 
 Asking for one of these by name through the catch-all returns 404 instead of a half-rendered page. A controller rendering the same template is unaffected - only requests that *name* a view are filtered. The file is optional: absent, nothing is filtered. A malformed `internal:` key throws a `TemplateException` at boot rather than failing silently.
 
+### Routes that are not views: `ignore_thelia_view`
+
+`Thelia\Core\EventListener\ViewListener` subscribes to `kernel.view`, so it runs only when a controller returns something that is not a `Response`, and only on the main request. Unless the request carries the `ignore_thelia_view` attribute it hands over to `Thelia\Core\View\ViewRenderer`, which reads the `_view` request attribute and renders that template from the active theme.
+
+A module route that declares no `_view` reaches the renderer with an empty view name: it logs `No view found` through `Tlog` and throws a `NotFoundHttpException`. `Thelia\Core\EventListener\ErrorListener` then catches that exception and, in production with the shop set to show its error page, replaces it with the theme's error template. So the endpoint answers a themed 404 page, and the only trace is one line in the Thelia log. A caller expecting JSON gets a shop page and no explanation.
+
+Declare the flag in the route defaults for anything that is not a themed page: JSON and AJAX endpoints, webhooks, callbacks, file downloads.
+
+```php
+#[Route(
+    '/mymodule/webhook',
+    name: 'mymodule_webhook',
+    defaults: ['ignore_thelia_view' => true],
+)]
+```
+
+One flag, three listeners, all keyed on the same request attribute:
+
+| Listener | Without the flag | With it |
+|---|---|---|
+| `ViewListener` | renders the themed view | stands down |
+| `ControllerListener::adminFirewall` | refuses a `BaseAdminController` action to a visitor who is not logged into the admin | stands down, so the route has to guard itself |
+| `ErrorListener` | logs the exception and, in production, swaps it for the theme's error page | stands down, so the exception surfaces as Symfony handles it |
+
+The counterpart is that opting out obliges you to return a `Response`: nothing renders a view for you any more, and `HttpKernel` throws `ControllerDoesNotReturnResponseException` on a controller that returns nothing. Nothing in the core ever sets the flag - it comes from route configuration only.
+
 ### Module template overrides
 
 Place `{module}/templates/frontOffice/flexy/mytemplate.html.twig`. The kernel scans `{module}/templates/{templateSubdir}/` at boot and adds it via `addPath()` to the TwigParser `FilesystemLoader` **after** the active theme.
@@ -90,6 +116,29 @@ Extensions from TwigEngine (`vendor/thelia/modules/TwigEngine/Extension/`):
 | `getAttributesAndValues(...)` | `AttributeExtension` | Product attributes |
 | `psesByProduct(productId)` | `PSEExtension` | JSON PSE data |
 | `filters_count(filters)` | `FilterExtension` | Active filter count |
+
+### The `app` variable is not Symfony's `AppVariable`
+
+`TwigParser::render()` (in the TwigEngine module, `Template/TwigParser.php`) injects its own `app` into the render context, alongside `locale`, `lang_code`, `lang_id` and `current_url`:
+
+```php
+'app' => (object) [
+    'environment' => ...,
+    'request' => ...,
+    'session' => ...,   // null when the request carries none
+    'debug' => ...,
+],
+```
+
+A context variable shadows a Twig global, so every template the parser renders - the page, whatever it extends, whatever it includes - sees that stub instead of `Symfony\Bridge\Twig\AppVariable`. The stub is a plain object with four properties and no methods, and `strict_variables` is off outside the test environment, so `app.flashes(...)`, `app.user`, `app.token` and `app.locale` all resolve to null without a word. A flash block written the Symfony way renders empty and nothing says why.
+
+Read flashes through the session instead, which is what the theme does:
+
+```twig
+{% for message in app.session ? app.session.flashBag.get('error') : [] %}
+```
+
+The back-office is not in the same position: its controllers render through the injected Twig `Environment` rather than through the parser, so their templates do get the real `AppVariable` and `app.flashes` works there. Which `app` you get depends on who renders the template.
 
 ## 3. `resources()` in Twig
 
@@ -321,6 +370,19 @@ There is **no bundler, no `package.json`, no `webpack.config.js` and no `node_mo
 
 Public output is AssetMapper's, under `/assets/frontOffice/{theme}/`. The old `templates-assets/{theme}/dist` symlink and the `<assets>dist</assets>` entry in `template.xml` no longer apply to Flexy.
 
+### Building for production
+
+What `bin/install` runs is a development build. A production deployment needs two more steps:
+
+```bash
+php bin/console tailwind:build --minify
+php bin/console asset-map:compile
+```
+
+`tailwind:build` on its own writes unminified CSS. `asset-map:compile` writes the mapped assets and their manifest into the public directory; AssetMapper's dev server, which serves them on the fly otherwise, defaults to the debug flag and is therefore off in production. Skip the compile and the front office loads with no CSS and no JavaScript, on a page that is otherwise fine.
+
+Run both again after any deployment that touches templates. Tailwind v4 scans the Twig sources, so a utility class used for the first time in a template only reaches the stylesheet once a build has seen it.
+
 ## 12. Virtual product download
 
 Flexy serves virtual product files from the customer account:
@@ -374,3 +436,7 @@ To customize: override `sitemap.html.twig` in the child template, or inject `Sit
 | `provide()` / `inject()` undefined on PHP 8.3 | ux-twig-component resolves to 2.x; the theme's `ComponentContextExtension` supplies them - do not add your own |
 | Component named with `name:` or `template:` | prefix is empty and the template is derived from the class path - write the attribute bare |
 | A form rendering as bare Symfony markup | no theme is global any more; add `{% form_theme form with flexy_form_themes only %}` |
+| A module JSON or webhook route answers a themed 404 page | it is still going through `ViewListener`; add `defaults: ['ignore_thelia_view' => true]` |
+| `app.flashes()` or `app.user` renders nothing | the parser's `app` is a four-property stub, not `AppVariable` - read flashes from `app.session.flashBag` |
+| A label translated in PHP shows its raw key | plain `TranslatorInterface` autowires to Thelia's `Translator`, which has no `messages` catalog - inject `#[Autowire(service: 'translator')]` |
+| Front office deployed with no CSS or JavaScript | `asset-map:compile` was not run; AssetMapper's dev server is off outside debug |
