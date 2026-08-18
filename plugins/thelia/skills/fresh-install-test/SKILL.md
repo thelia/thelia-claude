@@ -77,7 +77,7 @@ ddev exec composer install
 
 # 5. Install Thelia with demo data and admin account
 ddev exec php bin/install \
-  --frontoffice_theme=flexy --backoffice_theme=default \
+  --frontoffice_theme=flexy --backoffice_theme=default-twig \
   --pdf_theme=default --email_theme=default \
   --with-demo --with-admin \
   --admin_login=thelia --admin_password=thelia \
@@ -163,7 +163,7 @@ ddev exec composer install
 
 # 5. Install Thelia with demo data and admin account
 ddev exec php bin/install \
-  --frontoffice_theme=flexy --backoffice_theme=default \
+  --frontoffice_theme=flexy --backoffice_theme=default-twig \
   --pdf_theme=default --email_theme=default \
   --with-demo --with-admin \
   --admin_login=thelia --admin_password=thelia \

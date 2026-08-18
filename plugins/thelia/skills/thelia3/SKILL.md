@@ -5,7 +5,7 @@ description: "Thelia 3 e-commerce framework (Symfony 7.4 LTS, API Platform 4.3, 
 
 # Thelia 3 - Module Development Guide
 
-> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or 8.4, Propel ORM. Front in Twig (Flexy, AssetMapper, Tailwind CLI), back-office in Twig via the default-twig theme. Email and PDF templates are Twig too. No Doctrine, no Messenger, no Turbo/Mercure.
+> Stack: Symfony 7.4 LTS, API Platform 4.3, PHP 8.3 or 8.4, Propel ORM. Front in Twig (Flexy, AssetMapper, Tailwind CLI), back-office in Twig via the default-twig theme. Email and PDF templates are Twig too. No Doctrine, no Messenger, no Mercure; Turbo ships with Flexy but Drive is off by default.
 
 ## 0. Install and version constraints
 
@@ -172,7 +172,7 @@ final class MyModule extends BaseModule
 - Twig: `resources('/api/front/...')`, `attr('product', 'id')`, `getForm(name)`, `hook(name)`, `theme_hook(name, params)`, `path(routeId)`.
 - Facades in LiveComponents: `CartFacade`, `CustomerFacade`, `OrderFacade`, `CheckoutFacade`.
 - Template overrides: place in `{module}/templates/frontOffice/flexy/`.
-- Assets: AssetMapper + Tailwind CLI, no Node build for the theme. Turbo/Mercure are ABSENT.
+- Assets: AssetMapper + Tailwind CLI, no Node build for the theme. Mercure is ABSENT; Turbo ships but Drive is opt-in per zone.
 - The theme carries the front catch-all route `/{_view}` (`FlexyBundle\Controller\ViewController`), which serves categories, products, contents and folders. No `thelia/front-module` is involved.
 - Details: [references/front-office.md](references/front-office.md)
 
@@ -256,7 +256,7 @@ final class MyModule extends BaseModule
 | `SecurityContext::getSession()` in CLI | `requestStack->getMainRequest()->getSession()` null | push Request manually or use `IntegrationTestCase` |
 | `getComponent()` Stimulus without `await` | async hydration | always `await getComponent(this.element)` |
 | Stale `module_template_dirs.php` cache | not invalidated outside `module:post-activate-all` | `cache:clear` after activation |
-| Missing `templates-assets/{theme}/dist` symlink | first boot | ensure `THELIA_WEB_DIR/templates-assets/` is writable |
+| Missing `templates-assets/backOffice/{theme}/dist` symlink | first boot; back-office Encore themes only, the AssetMapper front never reads this path | ensure `THELIA_WEB_DIR/templates-assets/` is writable |
 | Propel `TINYINT` setter (`setVisible(true)`...) | column typed `?int`, `strict_types` rejects `bool` | pass `0`/`1` (DECIMAL = `?string`, never `float`) |
 | `trans('X')` PHP without domain gives unexpected French text | injected `TranslatorInterface` = **`core`** domain (Twig `\|trans` = `messages` domain); missing key returns raw string | specify module domain (`trans('X', [], 'mymodule')`) |
 | `Lang::getDefaultLanguage()` mistaken for current locale | = store default language (often `en_US`) | `$request->getLocale()` for the UI locale |
@@ -277,7 +277,7 @@ When working on a module, these patterns are more modern but not yet standard Th
 - DTO mapping: manual transformations -> `ObjectMapper` SF 7.3
 - Web security: Thelia `SecurityContext` + `checkAuth()` -> Symfony Voters + `#[IsGranted]` (Propel profile integration to design)
 - AP serialization perf: `JsonStreamer` SF 7.3 on large collections
-- Front interactivity: LiveComponents only -> Turbo Drive + Streams + Mercure (real-time)
+- Front interactivity: LiveComponents, plus Turbo Drive on the checkout only -> Drive site-wide + Streams + Mercure (real-time)
 
 ## 7. Essential vocabulary
 

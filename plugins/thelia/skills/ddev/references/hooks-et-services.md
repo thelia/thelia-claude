@@ -36,11 +36,16 @@ hooks:
 
 ### Hook: Compile assets
 
+The two theme families do not share a toolchain: the Flexy front office runs on AssetMapper
+plus the Tailwind CLI binary and has no `package.json`, while the `default-twig` back office
+is still a Webpack Encore theme.
+
 ```yaml
 hooks:
   post-start:
-    - exec: bin/console sass:build
-    - exec: npm run build
+    - exec: php bin/console importmap:install
+    - exec: php bin/console tailwind:build
+    - exec: bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
 ```
 
 ### Hook: Start Messenger

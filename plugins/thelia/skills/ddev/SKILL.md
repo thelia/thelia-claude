@@ -110,7 +110,7 @@ hooks:
     - composer: install
     - exec-host: ddev mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS db_test; GRANT ALL PRIVILEGES ON db_test.* TO 'db'@'%'; FLUSH PRIVILEGES;"
     - exec: php Thelia cache:clear
-    - exec: bin/console sass:build
+    - exec: php bin/console tailwind:build
     - exec: symfony run --daemon bin/console messenger:consume async -vv
 ```
 
