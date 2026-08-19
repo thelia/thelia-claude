@@ -256,7 +256,7 @@ final class MyModule extends BaseModule
 | `SecurityContext::getSession()` in CLI | `requestStack->getMainRequest()->getSession()` null | push Request manually or use `IntegrationTestCase` |
 | `getComponent()` Stimulus without `await` | async hydration | always `await getComponent(this.element)` |
 | Stale `module_template_dirs.php` cache | not invalidated outside `module:post-activate-all` | `cache:clear` after activation |
-| Missing `templates-assets/backOffice/{theme}/dist` symlink | first boot; back-office Encore themes only, the AssetMapper front never reads this path | ensure `THELIA_WEB_DIR/templates-assets/` is writable |
+| Missing `templates-assets/backOffice/{theme}/dist` symlink | first boot; legacy Encore back-office themes only — neither the AssetMapper front nor `default-twig` (AssetMapper since 1.0.0-beta9) read this path | ensure `THELIA_WEB_DIR/templates-assets/` is writable |
 | Propel `TINYINT` setter (`setVisible(true)`...) | column typed `?int`, `strict_types` rejects `bool` | pass `0`/`1` (DECIMAL = `?string`, never `float`) |
 | `trans('X')` PHP without domain gives unexpected French text | injected `TranslatorInterface` = **`core`** domain (Twig `\|trans` = `messages` domain); missing key returns raw string | specify module domain (`trans('X', [], 'mymodule')`) |
 | `Lang::getDefaultLanguage()` mistaken for current locale | = store default language (often `en_US`) | `$request->getLocale()` for the UI locale |

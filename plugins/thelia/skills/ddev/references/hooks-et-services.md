@@ -36,16 +36,16 @@ hooks:
 
 ### Hook: Compile assets
 
-The two theme families do not share a toolchain: the Flexy front office runs on AssetMapper
-plus the Tailwind CLI binary and has no `package.json`, while the `default-twig` back office
-is still a Webpack Encore theme.
+No npm anywhere: the Flexy front office runs on AssetMapper plus the Tailwind CLI binary,
+and the `default-twig` back office (since 1.0.0-beta9) on AssetMapper plus a dart-sass
+binary through symfonycasts/sass-bundle.
 
 ```yaml
 hooks:
   post-start:
     - exec: php bin/console importmap:install
     - exec: php bin/console tailwind:build
-    - exec: bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
+    - exec: php bin/console sass:build
 ```
 
 **Note:** `exec` commands run inside the web container. `exec-host` commands run on the host machine.
