@@ -1,7 +1,7 @@
 {
   "name": "thelia",
   "description": "Develop Thelia 3 with Claude Code: skills and agents for modules, Propel ORM, the API Platform bridge, the Flexy front-office, the default-twig back-office, and Thelia 2 to 3 migration.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "author": {
     "name": "Thelia"
   },

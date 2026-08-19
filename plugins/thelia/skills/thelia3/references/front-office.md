@@ -366,7 +366,7 @@ There is **no bundler, no `package.json`, no `webpack.config.js` and no `node_mo
 - Icons: `symfony/ux-icons`, reading `assets/icons/`.
 - Class merging: `tales-from-a-dev/twig-tailwind-extra`, with custom class groups configured in the theme.
 
-`bin/install` runs `importmap:install` then `tailwind:build` itself when those commands exist, so a fresh install needs no manual front-office asset step. Only the back-office theme still needs `npm install && npm run build`.
+`bin/install` runs `importmap:install`, `tailwind:build` and `sass:build` itself when those commands exist, so a fresh install needs no manual asset step at all — the `default-twig` back office builds with sass-bundle since 1.0.0-beta9, npm is gone everywhere.
 
 Public output is AssetMapper's, under `/assets/frontOffice/{theme}/`. The old `templates-assets/{theme}/dist` symlink and the `<assets>dist</assets>` entry in `template.xml` no longer apply to Flexy.
 

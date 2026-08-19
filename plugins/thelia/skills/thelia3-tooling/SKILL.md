@@ -57,17 +57,15 @@ A deprecated attribute in `phpunit.xml` (for example `cacheResultFile`, or the o
 
 If the dev and test environments share the same `config/jwt/` keypair but use different passphrases, the API test suite cannot decrypt the key and reports `bad decrypt`. The fix is to regenerate the keypair without a passphrase, so the unencrypted key loads in both environments. Suspect this before any application bug when the API suite turns red right after a restart or a test database rebuild.
 
-## Which theme assets are built for you, and which are not
+## Every theme's assets are built for you
 
-`bin/install` builds the front-office assets itself: it runs `importmap:install` then `tailwind:build` when those commands exist. Flexy is an AssetMapper plus Tailwind CLI theme, so there is no `npm install` and no bundler step to run by hand.
+`bin/install` builds all the theme assets itself: it runs `importmap:install`, `tailwind:build` and `sass:build` when those commands exist. Flexy is an AssetMapper plus Tailwind CLI theme; the `default-twig` back office (since 1.0.0-beta9) is an AssetMapper plus sass-bundle theme. No `npm install`, no bundler step, no Node anywhere.
 
-The back-office theme is the exception. Its compiled `dist/` is gitignored and therefore absent from the published package, so it has to be built once:
+An admin that renders with no styling means `sass:build` has not run: the core predates 3.0.0-beta4 (its installer does not know the command), or the stylesheet needs a rebuild after a `composer update` on the theme:
 
 ```bash
-cd templates/backOffice/default-twig && npm install && npm run build
+php bin/console sass:build
 ```
-
-An admin that renders with no styling is this missing build, not a broken configuration. Rebuild it after a `composer update` on the theme too, since the update replaces the package directory and takes `dist/` with it.
 
 Deploying to production adds two steps that no install script runs for you: `tailwind:build --minify` for the stylesheet, and `asset-map:compile` to write the mapped assets into the public directory. AssetMapper's dev server, which serves them on the fly during development, follows the debug flag and is off in production, so a front office deployed without the compile loads with no CSS and no JavaScript.
 

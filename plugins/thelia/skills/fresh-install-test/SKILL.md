@@ -90,10 +90,12 @@ ddev exec php bin/install \
 #   "N module(s) post-activated." (count varies with installed modules)
 #   "User thelia successfully created."
 #   No "ERROR:" lines anywhere
-#   The front-office assets built by bin/install itself (importmap:install, then tailwind:build)
+#   The assets built by bin/install itself (importmap:install, tailwind:build,
+#   and sass:build for the back office since default-twig 1.0.0-beta9)
 
-# 6. Build the back-office theme (bin/install does NOT do this one)
-ddev exec bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
+# 6. Nothing to build by hand: bin/install compiled every theme's assets.
+# To rebuild the back-office stylesheet later:
+#   ddev exec php bin/console sass:build
 
 # 7. Verify the home page
 curl -sk https://$PROJECT.ddev.site/ | wc -c
@@ -170,8 +172,8 @@ ddev exec php bin/install \
   --admin_first_name=thelia --admin_last_name=thelia \
   --admin_email=thelia@example.com
 
-# 6. Build the back-office theme (the front-office assets are already built by bin/install)
-ddev exec bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
+# 6. Nothing to build by hand: bin/install compiled every theme's assets,
+# back office included (sass:build).
 
 # 7. Verify the home page
 curl -sk https://$PROJECT.ddev.site/ | wc -c
@@ -208,17 +210,15 @@ The most common problems encountered in modules:
 
 ---
 
-## Front-office assets: automatic; back-office assets: manual
+## All assets build automatically
 
-`bin/install` builds the front-office assets itself, running `importmap:install` then `tailwind:build` when those commands are available. There is nothing to run by hand for Flexy, and no `npm install` either: the theme uses AssetMapper and a Tailwind CLI binary, not Node.
+`bin/install` builds every theme's assets itself, running `importmap:install`, `tailwind:build` and `sass:build` when those commands are available. There is nothing to run by hand and no `npm install` anywhere: Flexy uses AssetMapper plus a Tailwind CLI binary, and the `default-twig` back office (since 1.0.0-beta9) uses AssetMapper plus a dart-sass binary through symfonycasts/sass-bundle.
 
-The back-office theme is the exception. Its compiled `dist/` is gitignored, so it ships absent from the package and has to be built once after install:
+An admin that renders unstyled means `sass:build` did not run: either the core predates 3.0.0-beta4 (its `bin/install` does not know the command) or the stylesheet needs a rebuild:
 
 ```bash
-ddev exec bash -c "cd templates/backOffice/default-twig && npm install && npm run build"
+ddev exec php bin/console sass:build
 ```
-
-An admin that renders unstyled is this build missing, not a configuration problem.
 
 ## Known issues
 
