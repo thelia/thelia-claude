@@ -483,7 +483,7 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 | Stale Twig cache after template override | `cache:clear` |
 | `module_template_dirs.php` stale | `cache:clear` after activation |
 | `var/propel/test/` cache pointing at wrong database | `bin/test-prepare` auto-purges it |
-| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant carries the current 3.0 beta; a 2.x value means the old core is still autoloaded |
+| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant carries the current 3.0 release; a 2.x value means the old core is still autoloaded |
 | `getPropelRelatedTableMap()` returns null on concrete resource | Always return `new XxxTableMap()` |
 | LiveProp with Propel object | Use DTOs or scalar values only |
 | `resources()` called from CLI | Unusable, throws `RuntimeException` (no main request). Add a guard or avoid. |

@@ -9,27 +9,27 @@ description: "Thelia 3 e-commerce framework (Symfony 7.4 LTS, API Platform 4.3, 
 
 ## 0. Install and version constraints
 
-Thelia 3 is installed from tagged releases, not from a development branch:
+Thelia 3 is installed from tagged releases, not from a development branch. Since 3.0.0 every package has a stable release, so plain Composer defaults work:
 
 ```bash
-composer create-project --stability=beta thelia/thelia-project my-shop
+composer create-project thelia/thelia-project my-shop
 ```
 
 Constraints for an existing project:
 
 | Package | Constraint |
 |---|---|
-| `thelia/core` | `^3.0.0-beta` |
-| Templates (`thelia/flexy`, back-office, email, PDF) | `^1.0.0-beta` |
+| `thelia/core` | `^3.0` |
+| Templates (`thelia/flexy`, back-office, email, PDF) | `^1.0` |
 | `thelia/*-module` | the module's current major |
 
-The project `composer.json` also needs `"minimum-stability": "beta"` and `"prefer-stable": true` until a stable release is tagged.
+No `--stability` flag and no `"minimum-stability"` tweak are needed anymore; a project upgrading from a beta should remove its `"minimum-stability": "beta"` line.
 
-Current tags: `3.0.0-beta3` for `thelia/thelia`, `thelia/core` and `thelia/setup`; `3.0.0-beta5` for the `thelia/thelia-project` skeleton. Each template moves on its own track: Flexy `1.0.0-beta7`, default-twig back-office `1.0.0-beta7`, PDF `1.0.0-beta6`, legacy back and email `1.0.0-beta4`. PHP 8.3 and 8.4 are both supported.
+Current tags: `3.0.0` for `thelia/thelia`, `thelia/core` and `thelia/setup`; `3.0.1` for the `thelia/thelia-project` skeleton. Each template moves on its own track: Flexy `1.0.3`, default-twig back-office `1.0.2`, PDF, email and legacy back `1.0.0`. PHP 8.3 and 8.4 are both supported.
 
 **Composer needs a GitHub token.** Without one, Flex cannot reach `thelia/thelia-recipes`, silently falls back to auto-generated recipes, never writes Thelia's `config/packages/*.yaml`, and the install dies far downstream on `You must either configure a "public_key" or a "secret_key"`. See the `thelia3-tooling` skill.
 
-The live branch of `thelia/thelia`, `thelia/docs` and the `thelia-templates/*` repos is `main`. The old `twig` branch is frozen.
+The live branch of `thelia/thelia`, `thelia/docs` and the `thelia-templates/*` repos is `main`. The old `twig` branches have been deleted; Thelia 2 maintenance lives on the `2.6` branch of `thelia/thelia` and on the `thelia2` branch of the modules.
 
 ## 1. Decision router - "I want to..."
 
