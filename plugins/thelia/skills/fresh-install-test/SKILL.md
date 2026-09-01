@@ -26,9 +26,9 @@ Reusable validation protocol for a clean Thelia 3 installation. Run it after any
 - **A GitHub token available to Composer** (see the trap below). Without it the install fails, and the error message points nowhere near the cause.
 - The target workspace directory must be empty (the protocol deletes and recreates it)
 
-Thelia 3 ships as tagged releases; there is no development branch to install from. Test 1 clones the development repository, whose live branch is `main`. Test 2 installs the published packages. The skeleton needs `--stability=beta` (or an explicit version), and a project's own `composer.json` needs `"minimum-stability": "beta"` with `"prefer-stable": true`.
+Thelia 3 ships as tagged releases; there is no development branch to install from. Test 1 clones the development repository, whose live branch is `main`. Test 2 installs the published packages. Since 3.0.0 every package has a stable release: plain `composer create-project` works, with no `--stability` flag and no `"minimum-stability"` tweak in the project's `composer.json`.
 
-Current tags: `3.0.0-beta3` for `thelia/thelia`, `thelia/core` and `thelia/setup`; `3.0.0-beta5` for `thelia/thelia-project`. Each template moves on its own track: Flexy `1.0.0-beta7`, default-twig back-office `1.0.0-beta7`, PDF `1.0.0-beta6`, legacy back and email `1.0.0-beta4`. The skeleton and the templates are versioned independently of the core, so do not expect the numbers to line up.
+Current tags: `3.0.0` for `thelia/thelia`, `thelia/core` and `thelia/setup`; `3.0.1` for `thelia/thelia-project`. Each template moves on its own track: Flexy `1.0.3`, default-twig back-office `1.0.2`, PDF, email and legacy back `1.0.0`. The skeleton and the templates are versioned independently of the core, so do not expect the numbers to line up.
 
 ### Trap: a missing GitHub token fails the install far from its cause
 
@@ -55,7 +55,7 @@ WORKSPACE=<path-to-your-workspace>
 
 PROJECT=thelia-3
 BRANCH=main  # the live branch; replace with a tag to test a release
-             # `twig` is a frozen legacy branch, do not test against it
+             # the legacy `twig` branch has been deleted, only `main` (T3) and `2.6` (T2) remain
 
 # 1. Full cleanup
 ddev stop --unlist $PROJECT 2>/dev/null
@@ -151,8 +151,8 @@ rm -rf "$WORKSPACE/$PROJECT"
 
 # 2. Create the project from the tagged release
 cd "$WORKSPACE"
-composer create-project --stability=beta thelia/thelia-project $PROJECT
-# Equivalent, pinned: composer create-project thelia/thelia-project:3.0.0-beta5 $PROJECT
+composer create-project thelia/thelia-project $PROJECT
+# Equivalent, pinned: composer create-project thelia/thelia-project:3.0.1 $PROJECT
 cd $PROJECT
 
 # 3. Configure DDEV (MariaDB version can vary by host)
@@ -191,7 +191,7 @@ ddev exec php -r 'require "vendor/autoload.php"; echo Symfony\Component\HttpKern
 - `bootstrap.php` must NOT load `vendor/autoload.php` (doing so disables the Symfony Runtime via its `require_once` guard).
 - `public/index.php` must load `bootstrap.php` first, then `vendor/autoload_runtime.php`.
 - `bin/console` passes through `vendor/thelia/core/Thelia`, not the standard Symfony pattern.
-- Constraints in the generated `composer.json`: `^3.0.0-beta` for `thelia/core`, `^1.0.0-beta` for the templates, the module's current major for `thelia/*-module`, plus `"minimum-stability": "beta"` and `"prefer-stable": true`.
+- The generated `composer.json` requires `thelia/thelia-skeleton: ^3.0` with `"minimum-stability": "stable"`; the skeleton package carries the real constraints (`^3.0` for `thelia/core`, `^1.0` for the templates, the module's current major for `thelia/*-module`).
 
 ---
 
