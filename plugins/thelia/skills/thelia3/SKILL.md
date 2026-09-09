@@ -269,6 +269,18 @@ final class MyModule extends BaseModule
 | Injected `TranslatorInterface` cannot see the theme catalog | the core aliases `TranslatorInterface` to `Thelia\Core\Translation\Translator`, which carries module and validator catalogs, not `translations/messages.<locale>.php` | `#[Autowire(service: 'translator')]` when you want the Symfony translator |
 | `app.flashes()` empty on a front page | templates rendered by `TwigParser` get a four-property `app` stub that shadows Symfony's `AppVariable` | read flashes from `app.session.flashBag` |
 
+
+| A core `*_UPDATE` event dispatched with a partially filled event | the Action listener rewrites every editable field from the event, blanking the others | hydrate the event from the model first, then change the target field, or use the narrower dedicated event when one exists |
+| A listener on `kernel.exception` never runs | Thelia's own error listener calls `setResponse()` at priority 128, which stops propagation | register above 128, or decorate the response instead |
+| Fetching the generic parser service directly | in a Twig-only install it is a fallback that throws on any call | resolve the active parser through the parser resolver service |
+| "Parser for template X not found" | detection (parser support check) and rendering (loader file lookup) disagreed; the file may exist | compare the two before assuming the template is missing |
+| `class_exists(Foo::class)` always false | `Foo::class` resolves in the current namespace at compile time when the `use` import is missing; no error is raised | always import the class you test for |
+| A Twig function or filter silently replaced | the last extension registered wins on a name collision | run `bin/console debug:twig` before adding one; prefix module functions |
+| A `disabled` form field rejected by validation | Symfony still runs the field's constraints even though the submitted value is ignored | a locked field carries no constraints |
+| `TypeError` when saving an empty optional form field through an event | many core event setters are non-nullable | cast the empty value to the type's sentinel (`''`, `0`) before calling the setter, never pass `null` |
+| `rewriting_url.redirected` pointing at another view or object | the resolver only follows a redirect to the same view, object and locale; anything else is a 500, not a redirect | create a real redirect rule instead |
+| `aria-*`, `role` and `open` attributes vanish from stored HTML | `HtmlSanitizerConfig::allowSafeElements()` strips them by default | allow the attributes explicitly in the sanitizer configuration |
+
 ## 6. Symfony-native evolution candidates
 
 When working on a module, these patterns are more modern but not yet standard Thelia. Use them when the context allows:

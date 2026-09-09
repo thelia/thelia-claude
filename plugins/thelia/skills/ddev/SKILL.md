@@ -237,3 +237,10 @@ ddev stop  # Or leave running
 See `references/hooks-et-services.md` before configuring post-start hooks, adding Mailpit, Redis, Elasticsearch, or customizing php.ini.
 
 See `references/troubleshooting.md` before diagnosing a DDEV problem (ports, DNS, cache, empty DB, memory), for common workflows (reset, PHP version change, onboarding), advanced commands, and the new-install checklist.
+
+## Pitfalls specific to Symfony projects under DDEV
+
+- `ddev composer <cmd>` prints only stderr on a non-zero exit, hiding a failing test report. Use `ddev exec composer <cmd>` for anything you need to read.
+- `web_environment` injects `DATABASE_*` variables before Symfony boots, and `Dotenv::bootEnv()` never overrides an already-present variable. A `.env.test` that changes the database name is ignored inside the container; `unset` or `env -u` the variables in the command, or declare the test database in `web_environment` too.
+- The `db` user cannot create arbitrary databases. Reproducing an install on a throwaway database needs an explicit `GRANT` as root and the database name passed through the shell environment.
+- Every project's `ddev exec` starts from the container's working directory: pass absolute paths inside the container (`/var/www/html/...`) when chaining commands.

@@ -440,3 +440,16 @@ To customize: override `sitemap.html.twig` in the child template, or inject `Sit
 | `app.flashes()` or `app.user` renders nothing | the parser's `app` is a four-property stub, not `AppVariable` - read flashes from `app.session.flashBag` |
 | A label translated in PHP shows its raw key | plain `TranslatorInterface` autowires to Thelia's `Translator`, which has no `messages` catalog - inject `#[Autowire(service: 'translator')]` |
 | Front office deployed with no CSS or JavaScript | `asset-map:compile` was not run; AssetMapper's dev server is off outside debug |
+
+## Front-office pitfalls seen in production
+
+- Every error path inside a `data-turbo="true"` zone (the checkout) must answer a redirect or a 4xx status, never `200`. Turbo Drive discards a `200` response to a form POST, so the buyer sees nothing. A `curl` of the same URL looks fine, which is why the defect survives manual checks.
+- `webp.generate: true` in the LiipImagine configuration sends every image URL through the on-demand resolve path, which no cache can serve.
+- A shop answering `200` on both the bare domain and `www` splits visitors into two carts: the session cookie is host-only. Redirect to one canonical host before suspecting the cart code.
+- The front sets a session cookie on every response. A shared cache (Varnish, CDN) can serve nothing publicly until that cookie is stripped for anonymous pages.
+- After `tailwind:build`, the browser may keep the previous hashed stylesheet; hard-reload with cache busting before concluding that a rule is dead.
+- Before styling markup rendered by a module, check the class actually present in the rendered HTML. A theme/module class mismatch produces no error, only dead rules.
+- A single-segment rewritten URL requested with a trailing slash can hit the front catch-all instead of the SEO resolver: the two disagree on the trailing slash. Normalize the URL at the edge or in the rewriting router.
+- Flexy's minimal registration creates a customer with no address until the checkout. Any code that assumes `getAddresses()` is non-empty is a latent 500.
+- A theme template that calls a Twig function provided by a module has a compile-time dependency on that module: with the module disabled, the whole front 500s on an undefined function. Guard the call or ship the function with the theme.
+- A `|trans` in a module's front template renders the raw key untranslated (unlike the back office); translate labels in PHP with the module domain and pass them to the template.

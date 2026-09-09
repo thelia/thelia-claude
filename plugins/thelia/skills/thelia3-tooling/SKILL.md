@@ -1,6 +1,6 @@
 ---
 name: thelia3-tooling
-description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, a PHPStan config whose includes merge paths instead of replacing them, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, front-office assets built by bin/install versus the back-office theme built by hand and the extra steps a production deployment needs, a missing GitHub token that fails an install with an unrelated error, and LiveComponents answering 404. Use when a Thelia command, an install, a deployment, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
+description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, a PHPStan config whose includes merge paths instead of replacing them, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, front-office assets built by bin/install versus the back-office theme built by hand and the extra steps a production deployment needs, a missing GitHub token that fails an install with an unrelated error, LiveComponents answering 404, a stale test container that cache:clear cannot fix, PHPStan failing on ungenerated Propel models, PHPUnit warnings exiting 0, ddev composer hiding output, thelia/config overwriting the local schema, Composer advisories, installer-paths clobbering a clone, production cache warmup, and the update loop replaying every script. Use when a Thelia command, an install, a deployment, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
 ---
 
 # Thelia 3 tooling
@@ -93,3 +93,49 @@ live_component:
 ```
 
 The same flag is the general opt-out from Thelia's view rendering: any route whose controller returns something the theme should not wrap needs it in its defaults. Nothing in the core ever sets it; it comes from route configuration only.
+
+## A stale test container that `cache:clear` cannot fix
+
+PHPUnit runs with `APP_DEBUG=0`, so Symfony never invalidates the compiled test container when a constructor signature, an API serialization group or a template changes. `cache:clear --env=test` boots into a different container hash and fixes nothing; `cache:warmup` keeps the stale metadata. Remove the directory:
+
+```bash
+rm -rf var/cache/test
+```
+
+Add `var/propel/test/` to the removal after a vendor or bundle resync. Symptoms: `ArgumentCountError`, `ServiceNotFoundException` on a service that exists, or hundreds of failures right after a rebase.
+
+## PHPStan reports a hundred missing classes after clearing `var/propel`
+
+The generated Propel models live under `var/propel/<env>/model/`. Removing that directory (or running on a fresh clone) makes PHPStan and `lint:twig`/`lint:yaml` fail on classes that are not missing but not generated yet. Run `bin/test-prepare` (or the model generation) first, and run the linters with `--env=test` after it.
+
+## PHPUnit warnings exit 0
+
+`phpunit.xml.dist` sets neither `failOnWarning` nor `failOnNotice`. A PHP warning is printed and the run still counts green. Read the summary line, and use `set -o pipefail` when piping the output.
+
+## `ddev composer` hides the failing output
+
+On a non-zero exit, `ddev composer <cmd>` shows only stderr, which hides PHPUnit's report. Run `ddev exec composer <cmd>` to see the whole output. Also, `composer` inside the container resolves to the project's vendored proxy, whose autoloader shadows a Composer plugin class present in the project's vendor tree; a plugin-related crash inside DDEV is not reproducible on the host for that reason.
+
+## `thelia/config` overwrites the local schema
+
+`composer install` extracts the published `thelia/config` package over `local/config/schema.xml`. On a project carrying a schema change that is not released yet, the install silently reverts the schema before Propel generation, and every model built from it lacks the new columns. Restore the file after `composer install` and before `bin/install`, and remember that a schema-only pull request stays red until the package is released.
+
+## Composer refuses an advisory-only version
+
+Composer 2.10 and later refuse by default to install a version covered by a registered security advisory. An exact pin on a series whose every release carries an advisory becomes unsolvable, with a message that names none of this ("could not be found in any version"). Widen the constraint or opt out explicitly.
+
+## `installer-paths` reinstalls over a local clone
+
+A package installed through `installer-paths` (modules, themes) is reinstalled from the registry by any `composer update` or `composer require`, over the directory it targets. A local development clone placed there is clobbered. Use a path repository with `symlink: true` for local work.
+
+## Production cache: purge, then warm up
+
+Purging `var/cache/prod` must always be followed by an explicit `cache:warmup`. The LiveComponents template map is produced by a cache warmer that nothing rebuilds lazily, so a purged-but-not-warmed production answers `500` on the first component render. `cache:clear` in production is the wrong tool for the same reason (see the Thelia console section).
+
+## The update loop replays everything
+
+The updater matches the version marker stored in the database against the update script filenames with a strict lookup. A marker that matches no filename (a pre-release suffix, a renamed script) makes it replay every script from the first one instead of resuming. Check the marker before running an update on a real database.
+
+## Waiting for a long command
+
+Chaining `sleep N && <command>` to wait for a build or a CI run is refused by the coding agent's safety layer. Poll with the harness's monitoring tool (a bounded `until` loop with a timeout) or run the command in the background and let its completion notify you.

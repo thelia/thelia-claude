@@ -644,6 +644,13 @@ Some methods that overrode Propel getters/setters with incompatible signatures w
 - **Property redeclaration:** a stub must never redeclare a property already defined in Base with a different type (for example, `protected $postage_tax = '0.00'` in `Order.php` crashed because Base declares `protected ?string $postage_tax = null`).
 - **SimpleXMLElement:** XML properties must be cast to `(string)` before being passed to typed setters.
 
+
+- **Never narrow a nullable Base getter either.** The i18n `save()` cascade reads the parent's primary key to set the child's FK before the parent's auto-increment id is assigned; a stub that declares the getter non-nullable throws a `TypeError` in that cascade only.
+- **`prepare($sql)` on a Propel connection returns a `StatementWrapper`,** not a `\PDOStatement`. Type against `Propel\Runtime\Connection\StatementInterface`.
+- **`timestampable` keeps `updated_at` only if the column was not modified.** An import that must restore historical timestamps sets them explicitly right before `save()`.
+- **A connection negotiated as `utf8` (utf8mb3)** rejects any character outside the BMP, emoji included, even in `utf8mb4` columns. Check the connection charset before the column charset.
+- **MariaDB propagates outer-query correlation through one level of derived table only.** Flatten a correlated subquery nested inside a second `FROM (...) AS sub`.
+
 ### Schema
 
 - **`insert.sql`:** `active-front-template` must be `flexy` (FlexyBundle crashes on a missing directory otherwise).
