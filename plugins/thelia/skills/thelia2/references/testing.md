@@ -9,7 +9,7 @@
 - `unit` -> `tests/Unit/` (in practice empty; only `tests/Unit/TestCase.php extends PHPUnit\Framework\TestCase`)
 - `functional` -> `tests/Functional/` (HTTP smoke via Symfony `WebTestCase`)
 
-`tests/Legacy/` is **not referenced** in phpunit.xml.dist -> tests not executed by default (SIGNAL-14). Bootstrap: `tests/bootstrap.php` (autoload + `Dotenv::bootEnv('.env')`).
+`tests/Legacy/` is **not referenced** in phpunit.xml.dist: `phpunit --testsuite unit|functional` never runs it. It IS executed by the `test-legacy` Composer script, which `composer test` (and therefore `composer ci`, run by the GitHub workflow on `2.6`) chains after the unit and functional suites, after activating the modules the legacy tests need (CustomDelivery, Cheque, HookTest...). A green CI proves what these scripts execute, nothing more: check `composer.json` scripts and `.github/workflows/test.yml` on the target branch before citing CI as proof. Bootstrap: `tests/bootstrap.php` (autoload + `Dotenv::bootEnv('.env')`).
 
 `KERNEL_CLASS = App\Kernel`, `APP_ENV = test`, **no specific `.env.test`**, **no isolated test DB** (shares the dev DB).
 
@@ -97,7 +97,7 @@ Reference: `tests/Legacy/TestCaseWithURLToolSetup.php:23` shows the `URL::$insta
 | Loop | Functional test: Smarty page with `{loop type="myloop"}`, GET via `WebTestCase`, assertion on `$crawler->filter()`. |
 | Form | Functional test: POST via `WebTestCase` to handler route, assert redirect (success) or crawl errored form (failure). Form rarely instantiated in isolation due to heavy `init()`. |
 | API endpoint | `WebTestCase` + manual JWT login: `POST /api/admin/login` get token, then `client->request('GET', '/api/admin/products', [], [], ['HTTP_AUTHORIZATION' => 'Bearer ...'])`. Assert JSON-LD. |
-| Action / event listener | Pattern from `tests/Legacy/` (not executed by phpunit): copy the bootstrap that boots Thelia + mock dispatcher. |
+| Action / event listener | Pattern from `tests/Legacy/` (run only through the `test-legacy` Composer script, not by `phpunit --testsuite`): copy the bootstrap that boots Thelia + mock dispatcher. |
 
 ### JWT API endpoint test (real pattern)
 
@@ -221,7 +221,7 @@ Defensible but **not recommended**: you lose immutability and non-inheritance gu
 ## 7. Test pitfalls
 
 1. No DB isolation -> tests permanently pollute dev DB (SIGNAL-15)
-2. `tests/Legacy/` ignored by phpunit.xml.dist; NEVER add new tests there (SIGNAL-14)
+2. `tests/Legacy/` is outside phpunit.xml.dist's suites and only runs through the `test-legacy` script; add new tests to `tests/Unit` or `tests/Functional`
 3. `URL::$instance` singleton not initialized -> NPE; always set up in bootstrap
 4. `Translator::$instance` singleton not initialized -> RuntimeException; same rule applies
 5. `WebTestCase::createClient()` does not reset the Kernel between tests; env mocks potentially contaminated
@@ -231,7 +231,7 @@ Defensible but **not recommended**: you lose immutability and non-inheritance gu
 
 ## 8. Against `tests/Legacy/`
 
-`tests/Legacy/` contains substantial tests (Propel Actions) that are never executed in CI or via `composer test`. Any test added there is silently ignored (SIGNAL-14).
+`tests/Legacy/` contains substantial tests (Propel Actions). On the 2.6 branch they run through the `test-legacy` Composer script, chained by `composer test` and by the CI workflow (`composer ci`), on a freshly reloaded demo database. They still are not part of phpunit.xml.dist, so a plain `vendor/bin/phpunit` or `--testsuite` run skips them.
 
 If you want to reuse the Legacy bootstrap (`tests/Legacy/bootstrap.php`) to test your module, copy it to `tests/{YourModule}/bootstrap.php` and configure a dedicated phpunit suite in the project (or module) `phpunit.xml.dist`.
 

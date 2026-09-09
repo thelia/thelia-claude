@@ -303,7 +303,7 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 | `Translator::$instance` / `URL::$instance` non-null in test | must stay `?self = null` (fatal otherwise) |
 | `final readonly class` not mockable (PHP 8.3 / PHPUnit 11) | a service intended to be mocked in unit tests = `readonly` without `final` (assumed exception; `final readonly` remains the default for DTOs and non-mocked services). Prefer integration tests without mocks. |
 | Propel test cache pointing to wrong DB | `bin/test-prepare` clears `var/propel/test/` |
-| Test does not rollback | protect `$useTransaction = true` (default) - do not override |
+| Test does not rollback | protect `$useTransaction = true` (default) - do not override. One documented exception: a test that searches a MySQL/MariaDB `FULLTEXT` index over rows it just inserted must commit them (InnoDB merges FULLTEXT writes only at commit), so it runs without the wrapper and cleans up explicitly in `tearDown()` |
 | `IntegrationTestCase::createFixtureFactory()` not used | always use factory for stable fixtures |
 | Container singleton state leak | `IntegrationTestCase` reboots per test if necessary |
 | `LogsInAsAdmin` without admin in DB | `$this->factory->admin()` before login |
@@ -315,3 +315,13 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 | `CustomerFacade::login($customer)` TypeError | takes a `CustomerLogin` DTO - do not use in tests, prefer `loginAsCustomerInSession()` |
 | `ActionIntegrationTestCase` without `LogsInAsCustomer` | extend `ApiTestCase` or push via `SecurityContext::setCustomerUser()` |
 | FK `customer` crash on `factory->customer()` | call `factory->lang()`, `factory->currency()`, `factory->customerTitle()` in setup |
+
+## Test infrastructure pitfalls
+
+- Modules present in `local/modules/` are activated by `bin/test-prepare` and their listeners run during the core suites. A red core test can come from a local module, not from the core.
+- PHPUnit runs with `APP_DEBUG=0`, so the compiled test container is never invalidated on a constructor signature change, an API group change or a template change. `cache:warmup --env=test` does not help either: it keeps stale serializer and validator metadata. Remove `var/cache/test` (and `var/propel/test/` after a vendor resync) before debugging.
+- `phpunit.xml.dist` sets neither `failOnWarning` nor `failOnNotice`: a PHP warning is printed but the suite exits `0`. Read the output, not only the exit code. When piping `composer test`, add `set -o pipefail` or the exit code is the pipe's.
+- `WebIntegrationTestCase::createFixtureFactory()` pushes a synthetic `GET /` request onto the `RequestStack` when none exists and never pops it. In an HTTP test that calls it, `getMainRequest()` returns that synthetic request, not the one the client sent.
+- A test that fails while a Propel transaction is open leaks the nested-transaction counter; a single `rollBack()` in `tearDown()` only decrements it, and the next tests hang or see foreign data. Force the rollback down to depth zero.
+- The currency-update test fetches the real ECB feed. A failure on an XML parse error is a network flake; rerun it alone before treating it as a regression.
+- The core disables MySQL's strict transaction mode at boot. A test that expects strict-mode rejection passes silently; prove such a test can fail by sabotaging the code it covers.

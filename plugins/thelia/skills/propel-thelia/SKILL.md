@@ -635,7 +635,7 @@ Some methods that overrode Propel getters/setters with incompatible signatures w
 - **Singletons** `Translator::$instance` and `URL::$instance` must stay `?self = null` (fatal error in tests otherwise).
 - **`#[Ignore]` on `static` methods** crashes the Symfony Serializer. Never do this.
 - **Propel subprocess:** `PropelInitService` crashes when Propel is launched in a cold subprocess. Always boot `App\Kernel` in-process.
-- **`Base/` classes are regenerated.** Never edit them manually. Module models are generated under `var/propel/{APP_ENV}/model/`: a `Class not found` on `MyModuleQuery` usually means that cache is stale or was never built, not that the class is missing. Regenerate (`module:generate:model`, or re-run the post-activation) before looking for a namespace bug.
+- **`Base/` classes are regenerated.** Never edit them manually. Module models are generated under `var/propel/{APP_ENV}/model/`: a `Class not found` on `MyModuleQuery` usually means that cache is stale or was never built, not that the class is missing. Rebuild that cache with `php Thelia cache:clear` (which regenerates `var/propel/<env>`) before looking for a namespace bug. `module:generate:model` only reads `local/modules` and writes nowhere useful for a vendor module, so it is not the fix.
 - **Never widen a getter to nullable in a stub.** Overriding a non-nullable Base getter with a `?type` return is an incompatible signature and fails at load.
 - **`Collection` is no longer an iterator:** use `getIterator()`; the `current()`/`next()` methods are `@deprecated`.
 - **Strict setter typing:** setters now have native PHP types. Passing a `bool` to a `?int` setter (TINYINT) or a `float` to a `?string` setter (DECIMAL) raises a `TypeError`. Always cast explicitly.
@@ -643,6 +643,13 @@ Some methods that overrode Propel getters/setters with incompatible signatures w
 - **Stub overrides:** any stub that overrides a getter or setter from Base must match the exact signature (param type + return type `: static`). Otherwise a fatal "must be compatible" error occurs.
 - **Property redeclaration:** a stub must never redeclare a property already defined in Base with a different type (for example, `protected $postage_tax = '0.00'` in `Order.php` crashed because Base declares `protected ?string $postage_tax = null`).
 - **SimpleXMLElement:** XML properties must be cast to `(string)` before being passed to typed setters.
+
+
+- **Never narrow a nullable Base getter either.** The i18n `save()` cascade reads the parent's primary key to set the child's FK before the parent's auto-increment id is assigned; a stub that declares the getter non-nullable throws a `TypeError` in that cascade only.
+- **`prepare($sql)` on a Propel connection returns a `StatementWrapper`,** not a `\PDOStatement`. Type against `Propel\Runtime\Connection\StatementInterface`.
+- **`timestampable` keeps `updated_at` only if the column was not modified.** An import that must restore historical timestamps sets them explicitly right before `save()`.
+- **A connection negotiated as `utf8` (utf8mb3)** rejects any character outside the BMP, emoji included, even in `utf8mb4` columns. Check the connection charset before the column charset.
+- **MariaDB propagates outer-query correlation through one level of derived table only.** Flatten a correlated subquery nested inside a second `FROM (...) AS sub`.
 
 ### Schema
 

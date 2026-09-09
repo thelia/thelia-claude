@@ -167,10 +167,11 @@
 
 | Symbol | Description |
 |---|---|
-| `router.admin` | Admin router (`admin.xml`, prio 0) |
-| `router.front` | Front router (`front.xml` from Front module, prio 128) |
-| `ModuleAttributeLoader` | Scans `Controller/` for `#[Route]` (prio 254) |
-| `RewritingRouter` | SEO URLs + locale resolution |
+| `router.rewrite` | `RewritingRouter`, SEO URLs from `rewriting_url` (prio 1024, tried first) |
+| `router.default` | Standard Symfony router (prio 512): core routes + tagged loaders; the only one `debug:router` shows |
+| `router.front` | Front router (`front.xml` from Front module, prio 128, catch-all `/{_view}`) |
+| `router.admin` | Admin router of the active back-office bundle (prio 0) |
+| `ModuleAttributeLoader` | Tagged `routing.loader` feeding `router.default`: scans active modules' `Controller/` for `#[Route]` |
 | `getRoutePrefix(): string` | Override module route prefix |
 | `getAnnotationRoutePrefix()` | `@deprecated` |
 

@@ -494,6 +494,20 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 | `ApiPlatform\Api\*` import left in place | Fatal at boot in AP 4 (no alias). Replace with `ApiPlatform\Metadata\*`. |
 | `openapiContext:` left on an operation | Silently ignored or fatal in AP 4. Replace with `openapi: new Operation(...)`. |
 
+
+| Re-running the module's initial `Config/TheliaMain.sql` to add a table | It replays `DROP TABLE IF EXISTS` first and empties an installed module. Ship a versioned `Config/update/<version>.sql` |
+| New table not seen by Propel after editing `schema.xml` | Clear the Propel model cache (`var/propel/<env>/`); the build step skips an existing combined schema |
+| Seeding rows for a new table in `postActivation()`/`update()` PHP | The running class map predates the DDL just executed. Seed in the versioned SQL migration |
+| Module tables in the wrong charset | Add the `<vendor type="mysql">` engine/charset block; mirror core conventions (tree parents non-FK with a default, `onUpdate="RESTRICT"`) |
+| A leftover Thelia 2 module in `local/modules/` | Its schema (`<database name="thelia">`) is merged into the combined schema and crashes tests and PHPStan. Remove it |
+| `<thelia>3.0.0</thelia>` activates on `3.0.0-betaN` | The pre-release suffix is stripped before comparing. State the minimum you really tested |
+| `<thelia>` treated as an upper bound | It accepts a range (`>=2.5.0 <3.0.0`) but stays a minimum on its own. A `preActivation()` that refuses must throw with a message; `return false` yields a generic error |
+| Module extending another module resolves the parent's T2 release | Constrain both Composer `require` and module.xml `<required>` to the parent's Thelia 3 major |
+| Module validated on a Smarty + Twig cohabitation install | Removed Smarty classes can mask failures. Validate on a Twig-only install |
+| Smarty templates deleted while PHP still renders them | Grep every `render()`/`hook` call before deleting; the feature breaks silently |
+| Module bump breaks a custom theme | Two ways: a removed API fatals, or a new form protection depends on a hook zone the theme does not render (silent). Check both on bump |
+| `DOMDocument` or `xmllint` missing when validating `module.xml` | The host PHP may lack `ext-dom`; validate inside the project's container |
+
 ---
 
 ## 12. Final migration checklist

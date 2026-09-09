@@ -237,3 +237,23 @@ live_component:
 **Test suite targeting the wrong database:** `.env.test` must set `DATABASE_NAME=test`, not `db`. If tests are still hitting the dev database, delete `var/propel/test/` to flush the Propel DSN cache.
 
 **`bin/console` produces no output on thelia-project:** the `Thelia` wrapper swallows stdout. Use `php -r 'require "vendor/autoload.php"; ...'` for one-off version checks.
+
+**Two `bin/install` scripts:** `thelia/thelia` and `thelia/thelia-project` each ship their own `bin/install`. A fix to the install logic must land, and be tagged, in both repositories.
+
+**`--backoffice_theme=default` on a fresh install:** it leaves the admin on the legacy Smarty theme without a warning, and `sass:build` later fails with an unrelated message. Pass `--backoffice_theme=default-twig` explicitly.
+
+**Re-run keeps stale bundles:** `bin/install` preserves `config/bundles.php` on re-run. Cleaning up bundles for a theme that is no longer selected requires `--strict-themes`. Conversely, a bundle registered in `bundles.php` whose theme package is gone is fatal on a fresh install: keep `bundles.php` in sync with what the themes require.
+
+**Theme activation writes into `composer.json` and `bundles.php`:** `template:set` adds the theme's PSR-4 entry and bundle class when the theme provides one. Missing entries surface as an "Unknown function" Twig error, not as a bundle-not-found error.
+
+**Core version bump and the path repository:** bumping the core version must also bump the version alias of the `core/` path repository in the root `composer.json`, or a fresh dev-repo install becomes unsolvable with a misleading "higher repository priority" message.
+
+**`minimum-stability: stable` is not transitive:** it only lowers the floor for root-declared constraints. Every transitive dependency must independently resolve to a published stable release. Dry-run `composer update --dry-run` on an empty project before tagging a stable.
+
+**`.env.local` is skipped in `test`:** `Dotenv::loadEnv()` ignores `.env.local` when `APP_ENV=test`. Anything a project declares only there must also be written to `.env.test`.
+
+**Database charset frozen at creation:** `CREATE DATABASE IF NOT EXISTS` never converts an existing database's charset. A `test` database created before a charset change keeps the old one until dropped and recreated.
+
+**Install from a worktree hits the parent database:** `bin/install` reads the database name from the shell environment before Dotenv runs and rewrites `.env.local` with it. Under DDEV, running the install from a worktree through the parent project's container targets the parent's database. Give each worktree its own DDEV project or override `DATABASE_NAME` explicitly.
+
+**A visitor walkthrough finds what the suites cannot:** the suites boot on a seeded database. After a fresh install, walk the shop as a visitor (home, search, registration, cart, checkout, order, admin login) and read the logs; this catches template, routing and theme-version defects invisible to the automated suites.

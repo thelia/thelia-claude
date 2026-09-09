@@ -97,3 +97,28 @@ Diagnosis: if every `_token` in the DOM is consistent but a click still fails, t
 ## Security
 
 The login page returns a generic "Invalid credentials" message. Never distinguish an unknown username from a wrong password: that enables user enumeration.
+
+## CSS and Stimulus pitfalls
+
+- Bootstrap's `offcanvas-md` / `-lg` / `-sm` utility forces a transparent background at and above its breakpoint; an element that needs its own background must redeclare `--bs-offcanvas-bg` there.
+- A Bootstrap reboot rule can beat a `.btn` variant at equal specificity by source order and render a solid button transparent. Raise the selector (`button.btn-primary`) instead of reordering imports.
+- A modal placed outside the element carrying `data-controller` has no working `data-action` or `data-target`: Stimulus wires descendants only. Move the modal inside the controller's element or give it its own controller.
+- Information that must be readable from every admin screen belongs in the top bar. Nothing in the layout is `position: sticky`, so a footer scrolls out of view.
+
+## Routing between two back-office bundles
+
+When the legacy Smarty bundle and the Twig bundle both register a route under the same name, matching favors the Twig router but `path()` generation favors the legacy definition. Reuse the legacy path verbatim when porting a route, or generated links point at the old controller.
+
+## Hooks: more rules
+
+- `hook_cards(name|[names], params)` wraps each module's contribution to a hook point in its own titled card. Use it where several modules stack on one point; never on JavaScript, menu or tab-content hooks.
+- A module configuration page registers through the module-configuration hook point and is gated by a capability check; the module must be reactivated after the hook class is added, or it never registers.
+- With both admin bundles active, a mutable "current parser" static can be overwritten by whichever bundle renders first; a later Twig hook fragment then resolves through the Smarty parser and renders empty. Prefer a Twig-only admin for any rendering diagnosis.
+- A new `|trans` key needs its translation in the same commit. A missing key falls back to the raw key with no error.
+
+## Tests against the Twig back office
+
+- The core CI never compiles the back-office theme's assets. An HTTP test on an admin page must guard on asset presence (`assertPageRenders()` or the equivalent helper) before asserting content; a raw `200` assertion breaks on the first theme release that changes an asset name.
+- The `test` environment can default the admin template to the legacy Smarty theme; the Twig routes then never register and a test hitting one gets `404` instead of `403` or `302`. Assert on the exact expected status, and check which template the test kernel activates before reading a `404` as a routing bug.
+- Open every creation modal full-page as well as inline, then diff submitted versus stored values. A modal can leave a field orphaned or overwrite a default with no visible symptom in the list view.
+- The admin login is scriptable end to end with curl (form login, then the session cookie); the JSON admin API login is a separate endpoint. Negative tests on a restricted admin need a profile row with a reduced permission bitmask.

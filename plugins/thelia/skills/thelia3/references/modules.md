@@ -147,11 +147,13 @@ final class FooController extends BaseAdminController
 }
 ```
 
-Three cumulative routers (`core/lib/Thelia/Config/Resources/services/core/routing.php`):
-- `router.admin` (`admin.xml`, prio 0)
-- `router.front` (`front.xml` from Front module, prio 128)
-- `ModuleAttributeLoader` (`#[Route]`, prio 254)
-- `RewritingRouter` (SEO URLs)
+HTTP routing goes through a CMF `ChainRouter` assembled by `RegisterRouterPass` (`core/lib/Thelia/Core/DependencyInjection/Compiler/RegisterRouterPass.php`), four routers tried by descending priority:
+- `router.rewrite` (prio 1024) — `RewritingRouter`, SEO URLs stored in `rewriting_url`; a miss falls through to the next router.
+- `router.default` (prio 512) — the standard Symfony router. It loads the core PHP routes plus the tagged `routing.loader` services: `ModuleAttributeLoader` (`#[Route]` of active modules, prefixed by `getRoutePrefix()`), `TemplateAttributeLoader` (routes declared in the active themes' `src/`) and the deprecated `ModuleXmlLoader`. `ModuleAttributeLoader` is a loader feeding this router, not a router of its own.
+- `router.front` (prio 128) — XML routes of the Front module, including the catch-all `/{_view}`. It exists only while the Front module is active: a bare install without it (some test kernels, a headless API deployment) has no `router.front` service, and code that references the service by id fails there.
+- `router.admin` (prio 0) — routes of the active back-office bundle.
+
+Diagnostic trap: `bin/console debug:router` and `router:match` only query `router.default`. A URL can match in HTTP (via `router.rewrite`, `router.front` or `router.admin`) without appearing there. To know which router and controller really served a request, read the WebProfiler request panel (`curl -D-` for the `X-Debug-Token`, then `/_profiler/<token>?panel=request`), or `grep -rl <route-name> var/cache/dev/routing/` to see which router compiled it.
 
 Note: `BaseController` has `#[Required]` setters -> NEVER use `final readonly` on a Thelia controller. `final readonly` remains required for services and DTOs.
 
