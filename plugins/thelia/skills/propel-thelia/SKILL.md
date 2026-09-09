@@ -635,7 +635,7 @@ Some methods that overrode Propel getters/setters with incompatible signatures w
 - **Singletons** `Translator::$instance` and `URL::$instance` must stay `?self = null` (fatal error in tests otherwise).
 - **`#[Ignore]` on `static` methods** crashes the Symfony Serializer. Never do this.
 - **Propel subprocess:** `PropelInitService` crashes when Propel is launched in a cold subprocess. Always boot `App\Kernel` in-process.
-- **`Base/` classes are regenerated.** Never edit them manually. Module models are generated under `var/propel/{APP_ENV}/model/`: a `Class not found` on `MyModuleQuery` usually means that cache is stale or was never built, not that the class is missing. Regenerate (`module:generate:model`, or re-run the post-activation) before looking for a namespace bug.
+- **`Base/` classes are regenerated.** Never edit them manually. Module models are generated under `var/propel/{APP_ENV}/model/`: a `Class not found` on `MyModuleQuery` usually means that cache is stale or was never built, not that the class is missing. Rebuild that cache with `php Thelia cache:clear` (which regenerates `var/propel/<env>`) before looking for a namespace bug. `module:generate:model` only reads `local/modules` and writes nowhere useful for a vendor module, so it is not the fix.
 - **Never widen a getter to nullable in a stub.** Overriding a non-nullable Base getter with a `?type` return is an incompatible signature and fails at load.
 - **`Collection` is no longer an iterator:** use `getIterator()`; the `current()`/`next()` methods are `@deprecated`.
 - **Strict setter typing:** setters now have native PHP types. Passing a `bool` to a `?int` setter (TINYINT) or a `float` to a `?string` setter (DECIMAL) raises a `TypeError`. Always cast explicitly.
