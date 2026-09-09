@@ -475,6 +475,14 @@ Payment modules that type-hint the old OpenApi event class (PayPal, Payzen, Cawl
 
 ---
 
+## Modules that stay on the Thelia 2 line
+
+Not every popular Thelia 2 module gets a Thelia 3 port. These are deliberately left on the 2.x line because the Thelia 3 core or the default Twig back office covers their features natively; do not migrate, fix or count them for a Thelia 3 project even when a tag numbered 3.x exists in their repository:
+
+- `EasyOrderManager`, `EasyProductManager`, `EasyCustomerManager` — filterable order, product and customer lists are native screens of the Twig back office.
+- `OpenApi` (`thelia/open-api-module`) — replaced by the API Platform integration of the core (see section 10).
+- `BetterSeo` — replaced by `SEOne` on Thelia 3.
+
 ## 11. Migration pitfalls
 
 | Pitfall | Solution |
