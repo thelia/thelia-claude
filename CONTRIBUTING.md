@@ -32,7 +32,7 @@ Three more the check cannot catch, so watch for them yourself:
 
 ## How it's organized
 
-- `plugins/thelia/skills/<name>/SKILL.md`: knowledge Claude loads on demand. The `description` in the frontmatter is the trigger, so write it to match the situations where the knowledge helps.
+- `plugins/thelia/skills/<name>/SKILL.md`: knowledge Claude loads on demand. The `description` in the frontmatter is the trigger, so write it to match the situations where the knowledge helps. Keep it to 350 characters at most (`scripts/check-skill-descriptions.sh`, run in CI): Claude Code lists every skill's description in each session under a shared budget, and past it descriptions are dropped and skills stop triggering. Name the situations, not every class and keyword.
 - `plugins/thelia/agents/<name>.md`: subagents.
 - `plugins/thelia/commands/<name>.md`: slash commands.
 
@@ -42,8 +42,8 @@ Skills and agents are discovered automatically, so there is no index to keep in 
 
 1. Decide where it belongs. A Propel gotcha goes in the Propel skill, a back-office pattern in the back-office skill. Fold it into an existing file rather than starting a new one when you can.
 2. Write the durable fact in neutral form. Keep the principle, drop the story.
-3. Run the check locally: `bash scripts/check-neutrality.sh`.
-4. Open a pull request. CI runs the neutrality and manifest checks, then a maintainer reads it for accuracy and reuse.
+3. Run the checks locally: `bash scripts/check-neutrality.sh` and `bash scripts/check-skill-descriptions.sh`.
+4. Open a pull request. CI runs the neutrality, description length and manifest checks, then a maintainer reads it for accuracy and reuse.
 
 ## Quality bar
 

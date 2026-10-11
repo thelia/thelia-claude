@@ -1,6 +1,6 @@
 ---
 name: docs-templates
-description: "Generate and structure technical documentation for PHP/Symfony/Thelia projects: project README, module README, CHANGELOG, REST API documentation, ADR (Architecture Decision Record). Use this skill when asked to: create a README, generate a CHANGELOG, document an API, write an ADR, structure documentation, use a documentation template, write markdown for a project, document a Thelia module, initialize README.md, apply Keep a Changelog format, document REST endpoints, record an architecture decision."
+description: "Templates for the technical documentation of PHP, Symfony and Thelia projects: project and module README, CHANGELOG in Keep a Changelog format, REST API docs, ADR. Use when writing or restructuring project documentation."
 ---
 
 # Documentation Templates

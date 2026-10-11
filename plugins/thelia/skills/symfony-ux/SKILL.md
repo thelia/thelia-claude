@@ -1,6 +1,6 @@
 ---
 name: symfony-ux
-description: "Symfony UX frontend stack combining Stimulus, Turbo, TwigComponent and LiveComponent. Builds reactive server-rendered UIs with minimal JavaScript. Use when choosing between UX tools, creating interactive components, handling partial page updates, real-time updates, or combining multiple UX packages. Relevant to Thelia 3's Flexy front-office (AsLiveComponent, AsTwigComponent, LiveProp, LiveAction, resources(), attr() Twig helpers). Triggers on: symfony ux, stimulus, turbo, live component, twig component, data-controller, data-action, data-model, turbo-frame, turbo-stream, AsLiveComponent, AsTwigComponent, LiveProp, LiveAction, frontend symfony, interactive ui, SPA feel, reactive component, server-rendered component, Mercure, real-time update, which ux package, how to make this interactive. Do NOT trigger for pure backend PHP/Symfony questions without frontend context."
+description: "Symfony UX front-end: Stimulus, Turbo, TwigComponent and LiveComponent, including the Thelia 3 Flexy front-office. Use when choosing a UX package, building an interactive component, partial page updates or real-time updates. Not for back-end PHP with no front-end side."
 ---
 
 # Symfony UX

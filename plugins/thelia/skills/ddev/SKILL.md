@@ -1,6 +1,6 @@
 ---
 name: ddev
-description: "Manage a local DDEV environment for PHP/Symfony/Thelia projects. Use when setting up a local dev environment, running ddev commands (start, stop, ssh, exec, composer, mysql), configuring post-start hooks, managing databases (import, export, snapshot), debugging containers, configuring Xdebug, checking logs. Also triggers on: docker local, web container, dev environment, project setup, database, mailpit email, redis, nginx, mariadb, php.ini, ddev config, ddev describe, ddev launch, ddev share, ddev poweroff, Thelia cache clear."
+description: "Local DDEV environment for PHP, Symfony and Thelia projects: start and stop, ddev exec and composer, database import, export and snapshots, post-start hooks, Xdebug, logs, Mailpit, cache clear. Use when setting up or debugging a local environment."
 ---
 
 # DDEV - Local environment

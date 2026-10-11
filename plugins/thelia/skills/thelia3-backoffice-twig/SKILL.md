@@ -1,6 +1,6 @@
 ---
 name: thelia3-backoffice-twig
-description: Build and theme the Thelia 3 default-twig back-office. Use when adding or changing admin pages, controllers, hooks, forms, i18n, CSRF, or Stimulus behavior in the Twig back-office, or when a module needs to render correctly in the Twig admin. Covers thin-controller architecture, the Repository plus Service/Presenter pattern, the two-translator i18n mechanism, hook registration and rendering, form theming scoped to /admin, CSRF tokens, and the pitfalls specific to the Twig admin.
+description: "Thelia 3 default-twig back-office: admin pages, thin controllers, the Repository plus Presenter pattern, hooks, forms scoped to /admin, the two-translator i18n, CSRF, Stimulus. Use when adding or changing an admin screen, or when a module must render in the Twig admin."
 ---
 
 # Thelia 3 back-office (default-twig)

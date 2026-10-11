@@ -16,6 +16,14 @@ jobs:
           NEUTRALITY_EXTRA_PATTERNS: ${{ vars.NEUTRALITY_DENYLIST }}
         run: bash scripts/check-neutrality.sh
 
+  descriptions:
+    name: Skill description length
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep every skill description under the listing budget
+        run: bash scripts/check-skill-descriptions.sh
+
   manifests:
     name: Manifest validity
     runs-on: ubuntu-latest

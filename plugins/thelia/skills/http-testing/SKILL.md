@@ -1,6 +1,6 @@
 ---
 name: http-testing
-description: "Test HTTP routes, API endpoints, and URLs of a web project with curl. Use this skill when asked to test routes, verify an endpoint, validate a URL, check a module, test a REST API, verify HTTP status codes, debug a 404/500/403 route, or test after creating a controller, route, or action. Keywords: test route, curl, HTTP status, endpoint, API test, verify URL, route testing, smoke test, health check, test module, test controller, debug route, test POST, test GET, test DELETE, response code, redirect, CSRF token, authentication, login test, cookie session, JWT token, bearer auth."
+description: "Test the routes and API endpoints of a web project with curl: status codes, redirects, POST forms with CSRF, session login, JWT bearer auth, 404, 403 and 500 debugging. Use after creating a controller or route, or to smoke-test an endpoint."
 ---
 
 # HTTP Route Testing
