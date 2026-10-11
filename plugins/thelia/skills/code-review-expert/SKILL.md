@@ -1,6 +1,6 @@
 ---
 name: code-review-expert
-description: "Expert code review of current git changes with a senior engineer lens. Detects SOLID violations, security risks, and proposes actionable improvements. Use when reviewing PHP/Symfony/Thelia code, auditing a PR, or checking code quality. Triggers on: code review, review, audit, PR review, merge request, quality check, security audit, performance review."
+description: "Senior code review of the current git diff for PHP, Symfony and Thelia: SOLID violations, security risks, actionable fixes. Use when reviewing changes, a pull or merge request, or auditing code quality."
 user-invocable: false
 ---
 

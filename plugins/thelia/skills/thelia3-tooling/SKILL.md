@@ -1,6 +1,6 @@
 ---
 name: thelia3-tooling
-description: "Operational gotchas when developing and testing Thelia 3: the Thelia console versus bin/console, a stale PHPStan result cache on Propel classes, a PHPStan config whose includes merge paths instead of replacing them, PHPUnit 11 failing on deprecated XML, JWT keys for the API test suite, front-office assets built by bin/install versus the back-office theme built by hand and the extra steps a production deployment needs, a missing GitHub token that fails an install with an unrelated error, LiveComponents answering 404, a stale test container that cache:clear cannot fix, PHPStan failing on ungenerated Propel models, PHPUnit warnings exiting 0, ddev composer hiding output, thelia/config overwriting the local schema, Composer advisories, installer-paths clobbering a clone, production cache warmup, and the update loop replaying every script. Use when a Thelia command, an install, a deployment, the test suite, PHPStan, JWT auth, or a theme's assets behave in a way the code does not explain."
+description: "Thelia 3 tooling gotchas: Thelia console versus bin/console, stale PHPStan cache on Propel, PHPUnit config, JWT keys for API tests, theme asset builds, install and deployment steps, LiveComponents answering 404, stale test container, Composer quirks. Use when a command, install, test or deployment behaves in a way the code does not explain."
 ---
 
 # Thelia 3 tooling

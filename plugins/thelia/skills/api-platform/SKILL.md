@@ -1,6 +1,6 @@
 ---
 name: api-platform
-description: "Enforces API Platform 4.2+ standards for Symfony (Doctrine ORM) and Thelia 3 (Propel, AP 3.x bridge) projects. Covers resource definition with explicit operations, state providers and processors, ObjectMapper integration (4.2), JsonStreamer for high-performance serialization (4.2), Metadata Mutators (4.2), QueryParameter filter system (4.2, replacing legacy ApiFilter), Link Provider for subresources, serialization groups, SearchFilter/BooleanFilter/OrderFilter/RangeFilter, input/output DTOs, validation with groups, JWT authentication flow, error handling with exception-to-status mapping. For Thelia/Propel: PropelResourceInterface, PropelResourceTrait, AbstractTranslatableResource, ResourceAddonInterface for extending native resources, admin/front endpoint separation, IRI relations. Triggers on ApiResource, operations, filters, serialization groups, JWT, state provider, state processor, ObjectMapper, JsonStreamer, QueryParameter, Metadata Mutator, PropelResourceInterface, ResourceAddonInterface."
+description: "API Platform resources for Symfony (Doctrine) and Thelia 3 (Propel bridge): operations, state providers and processors, filters, serialization groups, DTOs, validation, JWT, error mapping, PropelResourceInterface and ResourceAddonInterface. Use when writing or reviewing an ApiResource or an API endpoint."
 ---
 
 # API Platform 4.2+: Development Standards

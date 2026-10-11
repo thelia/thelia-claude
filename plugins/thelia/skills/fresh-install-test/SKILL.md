@@ -1,11 +1,6 @@
 ---
 name: fresh-install-test
-description: >
-  Validates a fresh Thelia 3 install from an empty directory and empty database.
-  Use after a version bump, a merge, or any change to bin/install, bin/test-prepare,
-  bootstrap.php, or DatabaseSetup. Covers two scenarios: the thelia/thelia dev repo
-  (with core/ as a path repository) and the thelia-project skeleton installed the way
-  a new developer installs it, with composer create-project from the tagged releases.
+description: "Validates a fresh Thelia 3 install from an empty directory and database, on the thelia/thelia dev repo and on the thelia-project skeleton. Use after a version bump, a merge, or a change to bin/install, bin/test-prepare, bootstrap.php or DatabaseSetup."
 ---
 
 # Skill: Fresh Install Test

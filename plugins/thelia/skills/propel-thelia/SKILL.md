@@ -1,6 +1,6 @@
 ---
 name: propel-thelia
-description: "Deep Propel ORM reference for Thelia 3. Covers the Thelia fork internals (4 waves of patches), bootstrap sequence (TheliaKernel, PropelInitService, SchemaLocator), model file layout (stubs vs generated Base/), query patterns (CRUD, relations, pagination, i18n, transactions), lifecycle events (Propel low-level and Thelia business events), API Platform bridge (PropelResourceInterface, AbstractTranslatableResource, ResourceAddonInterface, filters, providers, processors), loops (BaseLoop, PropelSearchLoopInterface), native PHP typing rules for generated models (nullable types, TINYINT/DECIMAL/BOOLEAN rules, method renames), and all common pitfalls. Triggers on: Propel, schema.xml, PropelQuery, PropelInitService, TheliaKernel, PropelResourceInterface, AbstractTranslatableResource, ResourceAddonInterface, BaseLoop, PropelSearchLoopInterface, ModelCriteria, TheliaEvents, BaseAction, EventSubscriberInterface (Thelia context), native typed setters, TINYINT bool coercion, DECIMAL string coercion."
+description: "Propel ORM in Thelia 3: the Thelia fork, bootstrap (PropelInitService), schema.xml and generated models, queries, i18n, transactions, lifecycle events, native typing of generated setters (TINYINT, DECIMAL), loops and the API Platform bridge. Use when touching a Propel model, query or schema in Thelia."
 ---
 
 # Propel ORM in Thelia 3: Complete Reference
