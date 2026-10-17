@@ -322,6 +322,7 @@ Consequences:
 | `getRequest()` from BaseModule in CLI | guard `$container->has('request_stack')` |
 | `RegisterHookListenersPass` DB query at compile time | DB must be available at cache warmup |
 | `ConfigQuery::read()` returns a stale value | PSR `thelia_config` cache (see §11) - force via `ConfigQuery::write()` or purge |
+| `update()` or `postActivation()` hangs on an `ALTER TABLE` | the core runs both inside a transaction (`ModuleManagement::updateModule`); the transaction keeps a metadata lock on the tables it touched, so DDL sent through another connection waits for it forever on MySQL 8. Run the module's SQL through the `$con` it receives (`new Database($con)`), never through a second `Propel::getConnection()` or PDO handle |
 
 ### Configuration cache `thelia_config`
 
@@ -344,3 +345,54 @@ ddev exec php Thelia module:generate MyModule
 ddev exec php Thelia module:generate:model MyModule --generate-sql
 ddev exec php Thelia admin:create
 ```
+
+## 12. CI and releases of a module
+
+Modules of the `thelia-modules` organisation share one CI and one auto-release, both from `thelia-modules/ReusableWorkflow`. A module's `.github/workflows/ci.yml` only calls it:
+
+```yaml
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+permissions:
+  contents: read
+jobs:
+  ci:
+    uses: thelia-modules/ReusableWorkflow/.github/workflows/module_ci.yml@main
+```
+
+Jobs of `module_ci.yml`:
+
+| Job | What it proves |
+|---|---|
+| Version bump (PRs only) | a PR that changes shipped files moves `<version>` of `Config/module.xml` past the base branch, to a version that has no tag yet |
+| Install on published Thelia | a new shop from Packagist (`thelia/thelia-project`) with the module in place, `bin/install`, module activation, container lint, cache warmup, storefront and back-office login served |
+| PHPStan level 0 on published Thelia | every class, function and method the module calls exists in the **published** core |
+| Module tests | the module's PHPUnit tests, run inside `thelia/thelia` `main` (skipped when there is none) |
+| Signal: install on Thelia main | the install job against the development tip of the core; informational, never fails the workflow |
+
+**Release rules.** The auto-release (`auto_release.yml`, on every push to `main`) tags and publishes `<version>` of `Config/module.xml` when that version has no tag yet.
+- A PR that changes code the module ships bumps `<version>` to a version that was **never tagged**. Merged without a bump, nothing is published and the run on `main` goes red; the next PR must then bump. Two PRs aiming at the same version: the second takes the next one.
+- Files that are not shipped need no bump: `*.md`, `docs/`, `.github/`, `Tests/` and `tests/`, `phpunit*.xml(.dist)`, `phpstan*.neon`, `rector.php`, `.php-cs-fixer*`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.scrutinizer.yml`, `LICENSE*`, `COPYING*` (the `not_shipped` regex of both scripts).
+
+**Optional dependencies and PHPStan.** The level 0 job sees the published core only. Symbols of the core that the module guards with `class_exists()` / `interface_exists()` (a newer core API, an optional module) are reported as unknown. List them in a `phpstan-baseline.neon` at the module root; the job includes it when present:
+
+```neon
+parameters:
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        -
+            message: '#^Instantiated class Vendor\\Optional\\Model\\Thing not found\.$#'
+            count: 1
+            path: Controller/ThingController.php
+```
+
+**Tests.** The job runs `phpunit.xml.dist` / `phpunit.xml` of the module when present, from the root of the Thelia checkout, the module being copied to `local/modules/<Code>`. From there the bootstrap of the core is three levels up:
+
+```xml
+<phpunit bootstrap="../../../tests/bootstrap.php" ...>
+```
+
+Without a config of its own, the core's `phpunit.xml.dist` runs the module's `Tests/` or `tests/` directory, with `bootstrap.php` of that directory when it has one. A bootstrap that does not load the core's `tests/bootstrap.php` (Composer autoloader and generated Propel models) must find the autoloader itself.
