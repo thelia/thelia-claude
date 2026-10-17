@@ -136,6 +136,20 @@ Purging `var/cache/prod` must always be followed by an explicit `cache:warmup`. 
 
 The updater matches the version marker stored in the database against the update script filenames with a strict lookup. A marker that matches no filename (a pre-release suffix, a renamed script) makes it replay every script from the first one instead of resuming. Check the marker before running an update on a real database.
 
+## `thelia:dev:db:diff` is never empty
+
+The command diffs a database against the Propel schema (`local/config/schema.xml`) and prints the SQL that would align them. Even a fresh install is not at zero: thousands of lines of `TIMESTAMP`/`DATETIME` type and foreign key name differences. Reading "no output" as the success criterion of an upgrade never works.
+
+To check an upgrade, compare two diffs of the same code: the database moved up by `setup/update.php` and a fresh install. The noise cancels, and any line left is a structure the update scripts did not bring (column, index, foreign key).
+
+```bash
+php bin/console thelia:dev:db:diff > updated.sql                        # database that was moved up
+DATABASE_NAME=thelia_fresh php bin/console thelia:dev:db:diff > fresh.sql   # fresh install, other database
+.github/scripts/upgrade/compare-schema.sh fresh.sql updated.sql         # in thelia/thelia
+```
+
+The script also fails when the fresh install itself lacks a column or table of `schema.xml` (`setup/thelia.sql` behind the schema). Rebuild the container and the Propel models before each diff.
+
 ## Waiting for a long command
 
 Chaining `sleep N && <command>` to wait for a build or a CI run is refused by the coding agent's safety layer. Poll with the harness's monitoring tool (a bounded `until` loop with a timeout) or run the command in the background and let its completion notify you.

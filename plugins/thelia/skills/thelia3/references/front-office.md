@@ -162,6 +162,31 @@ The back-office is not in the same position: its controllers render through the 
 
 Synchronous, internal AP call. Do NOT call inside a Twig loop without caching.
 
+### Shared cache of public pages
+
+The core can let a proxy (Varnish, CDN) share anonymous pages: shop configuration `shared_cache_mode` (`disabled` by default, `announce`, `enabled`), classes in `core/lib/Thelia/Core/SharedCache/`. This exists on the development branch of the core; check that the release you target has it. Every `resources()` call made while a page renders is recorded, and the page is tagged with cache keys derived from the resources it read.
+
+**A page that reads a resource the core does not know is not shared at all.** Core resources (`/api/front/products`, `categories`, ...) map to keys by themselves. Any other path, such as a module's own `resources('/api/...')`, marks the page as incomplete, so it is neither tagged nor shared. Because a module that renders on every page (a header banner, for example) does this on all of them, one such module turns the cache off for the whole shop.
+
+A module opts in by implementing `Thelia\Core\SharedCache\SharedCacheContributorInterface` on an autoconfigured service:
+
+```php
+public function readableResources(): array
+{
+    // start of the resource path => keys the page is tagged with
+    return ['/api/header-highlights' => ['header_highlights']];
+}
+
+public function shareableViews(): array
+{
+    return []; // views the module renders whose page may be shared
+}
+```
+
+Purge what you declared: when the merchant changes the data, call `SharedCacheInvalidator::purge(['header_highlights'])` with the same keys. A resource whose answer depends on the visitor must not be declared.
+
+A response that sets a cookie of the module stays private: only the session cookie and a cleared cart cookie are stripped from a shared page. A request that carries cookies, an `Authorization` header or is an XHR is never shared either.
+
 ## 4. Component naming and layout
 
 Components live in the theme's `components/` directory under `FlexyBundle\Components\`, grouped as `Atoms`, `Fields`, `Forms`, `Layouts`, `Molecules`, `Organisms`, `Toolkit`. Each component is a directory holding its PHP class, its Twig template, its CSS and, when it needs one, its Stimulus controller.
@@ -446,7 +471,7 @@ To customize: override `sitemap.html.twig` in the child template, or inject `Sit
 - Every error path inside a `data-turbo="true"` zone (the checkout) must answer a redirect or a 4xx status, never `200`. Turbo Drive discards a `200` response to a form POST, so the buyer sees nothing. A `curl` of the same URL looks fine, which is why the defect survives manual checks.
 - `webp.generate: true` in the LiipImagine configuration sends every image URL through the on-demand resolve path, which no cache can serve.
 - A shop answering `200` on both the bare domain and `www` splits visitors into two carts: the session cookie is host-only. Redirect to one canonical host before suspecting the cart code.
-- The front sets a session cookie on every response. A shared cache (Varnish, CDN) can serve nothing publicly until that cookie is stripped for anonymous pages.
+- The front sets a session cookie on every response. A shared cache (Varnish, CDN) can serve nothing publicly until that cookie is stripped for anonymous pages; the core's shared cache does it (see §3), but only for pages whose every `resources()` read is known to it.
 - After `tailwind:build`, the browser may keep the previous hashed stylesheet; hard-reload with cache busting before concluding that a rule is dead.
 - Before styling markup rendered by a module, check the class actually present in the rendered HTML. A theme/module class mismatch produces no error, only dead rules.
 - A single-segment rewritten URL requested with a trailing slash can hit the front catch-all instead of the SEO resolver: the two disagree on the trailing slash. Normalize the URL at the edge or in the rewriting router.

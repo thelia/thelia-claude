@@ -325,3 +325,8 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 - A test that fails while a Propel transaction is open leaks the nested-transaction counter; a single `rollBack()` in `tearDown()` only decrements it, and the next tests hang or see foreign data. Force the rollback down to depth zero.
 - The currency-update test fetches the real ECB feed. A failure on an XML parse error is a network flake; rerun it alone before treating it as a regression.
 - The core disables MySQL's strict transaction mode at boot. A test that expects strict-mode rejection passes silently; prove such a test can fail by sabotaging the code it covers.
+- CI runs MySQL 8, a DDEV bench may run MariaDB, and they do not agree on fractions of a second: MySQL 8 **rounds** a value inserted into a `DATETIME`/`TIMESTAMP(0)` column to the nearest second, MariaDB truncates it (`10:00:00.789` is stored as `10:00:01` on MySQL 8, `10:00:00` on MariaDB 10.11). A test that compares a stored date with `new \DateTime()` must compare at the second, or freeze the clock.
+- A header snapshot holding a clock-dependent value (`expires` of a cookie, `date`) never matches twice: freeze the clock, or mask the value before comparing (`preg_replace('/expires=[^;]+/', 'expires=<now>', ...)`).
+- PHPUnit 11.5 has no `--repeat`. To run a test many times (a flaky one, a race), loop in the shell or use a data provider.
+- A test or CI job that hangs on an `ALTER TABLE` inside a module update is a metadata lock, not a slow query: see the trap table of `modules.md` §10.
+

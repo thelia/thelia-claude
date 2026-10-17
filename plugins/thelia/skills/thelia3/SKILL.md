@@ -79,6 +79,10 @@ The live branch of `thelia/thelia`, `thelia/docs` and the `thelia-templates/*` r
 | Add a section to the customer data export | implement `CustomerPersonalDataProviderInterface` (auto-tagged) | code-patterns.md |
 | Compile front assets | AssetMapper (`importmap.php`) + Tailwind CLI - `bin/install` runs both | front-office.md |
 | Distribute via Composer | `"type": "thelia-module"` + `thelia/installer` + `extra.installer-name` | modules.md |
+| Release a module, read its CI | `ReusableWorkflow` `module_ci.yml`; bump `<version>` to a never-tagged version | modules.md §12 |
+| Module page rendered on every public page reads `resources('/api/...')` | implement `SharedCacheContributorInterface` or no page is shared | front-office.md §3 |
+| Remove or rename something public in the core | deprecate first (`trigger_deprecation`, Twig `deprecation_info`) | contributing.md |
+| Open a PR on the core | read the CI evidence report, merge through the queue | contributing.md |
 | Migrate a T2 module | see the dedicated guide | See thelia3-module-migration skill |
 
 ## 2. Modern Thelia 3 module skeleton
@@ -336,12 +340,13 @@ When working on a module, these patterns are more modern but not yet standard Th
 
 ## Deep-dive references
 
-- [references/modules.md](references/modules.md) - Skeleton, configureServices, lifecycle, Propel persistence, i18n, Composer distribution
+- [references/modules.md](references/modules.md) - Skeleton, configureServices, lifecycle, Propel persistence, i18n, Composer distribution, module CI and releases
 - [references/api-integration.md](references/api-integration.md) - AP 4.3, resources, addons, filters, security, DAS, providers/processors
 - [references/front-office.md](references/front-office.md) - Flexy, LiveComponents, TwigComponents, Stimulus, facades, assets, template overrides
 - [references/hooks.md](references/hooks.md) - Thelia events, listeners, back-office hooks auto-tagged, front theme hooks (`theme_hook()`), loops auto-tagged
 - [references/code-patterns.md](references/code-patterns.md) - Forms (BaseForm + API DTO), `#[AsCommand]` commands, services
 - [references/testing.md](references/testing.md) - Test strategy + FixtureFactory + ApiTestCase
+- [references/contributing.md](references/contributing.md) - 3.x compatibility promise, deprecation rules, CI of a core PR, merge queue
 - [references/payment-delivery.md](references/payment-delivery.md) - Typed payment / delivery modules
 - [references/glossary.md](references/glossary.md) - Complete vocabulary by cluster
 
