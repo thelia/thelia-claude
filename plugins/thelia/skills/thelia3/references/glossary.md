@@ -18,7 +18,7 @@
 | `THELIA_LOCAL_MODULE_DIR` | Constant = `local/modules/` (takes priority) |
 | `Database` | `Thelia\Core\Install\Database` - PDO wrapper (`insertSql()`) |
 | `module.xml` | Metadata, XSD `module-2_2.xsd` |
-| `config.xml` | Optional legacy (exports/imports/parameters/loop aliases) |
+| `config.xml` | Required file, may be empty; legacy content (exports/imports/parameters/loop aliases) |
 | `schema.xml` | Propel schema merged by `SchemaLocator` |
 | `TheliaEvents::MODULE_TOGGLE_ACTIVATION` | Module activation event |
 | `module:refresh` / `module:activate` / `module:post-activate-all` | Lifecycle CLI commands |

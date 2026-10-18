@@ -94,7 +94,7 @@ local/modules/MyModule/
 |  +- schema.xml             # REQUIRED if DB tables
 |  +- TheliaMain.sql         # Initial SQL (postActivation)
 |  +- update/                # Versioned *.sql files (1.0.1.sql, 1.1.0.sql...)
-|  +- config.xml             # OPTIONAL - exports/imports/parameters/loop aliases only
+|  +- config.xml             # REQUIRED file (may be empty); content only for exports/imports/parameters/loop aliases
 +- Controller/               # PHP 8 #[Route] - auto-scanned by ModuleAttributeLoader
 +- Api/Resource/             # Auto-discovered via configureServices() + uriTemplate
 +- Form/                     # extends BaseForm -> auto-tag thelia.form
@@ -160,7 +160,7 @@ final class MyModule extends BaseModule
 - Exclude the directories that hold no class **relative to the module**: `->exclude([__DIR__.'/I18n/*'])`. Never `THELIA_MODULE_DIR.'MyModule/I18n/*'`: that constant is `vendor/thelia/modules/`, so a module living in `local/modules/` (zip uploaded from the back office, development) scans its translation files as classes, `configureServices()` throws "Expected to find class ...\I18n\...", and outside debug the core only logs it: the module runs with **no service at all**.
 - `update()` runs inside the core's transaction, right after the core wrote the new version to `module`. A schema change there (`ALTER TABLE` in `Config/update/*.sql`) commits that transaction implicitly on MySQL. On a core that has it (3.3+), put DDL in `postUpdate(string $currentVersion, string $newVersion)`, called once the update is committed (not on install, not retried if it fails: keep it idempotent). Never run DDL on a second connection from `update()`: on MySQL 8 the core transaction holds metadata locks on every table linked to `module` by a foreign key, and the `ALTER` waits for them forever (`lock_wait_timeout` defaults to one year).
 - `module.xml` minimal (metadata + `<fullnamespace>`).
-- `config.xml`: OPTIONAL - only if `<exports>`, `<imports>`, `<parameters>`, or a `<loop name="alias">` that differs from the auto snake_case name.
+- `config.xml`: its **content** is optional - only `<exports>`, `<imports>`, `<parameters>`, or a `<loop name="alias">` that differs from the auto snake_case name. The **file** is required: the kernel loads it for every active module without checking that it exists, so a module without it stops the container compilation (`FileLocatorFileNotFoundException`). Keep an empty `<config>` when there is nothing to declare, and never delete it when removing the last loop or service from it.
 - `local/modules/` takes PRIORITY over `vendor/thelia/modules/`.
 - Single source of truth at boot: `ModuleQuery::getActivated()`. A module present on the filesystem but absent from the DB is invisible.
 - Details: [references/modules.md](references/modules.md)
@@ -314,7 +314,7 @@ When working on a module, these patterns are more modern but not yet standard Th
 - `configureServices(ServicesConfigurator)` - module DI entry point (REQUIRED)
 - `ModuleQuery::getActivated()` - single source of active modules at boot
 - `Database` - `Thelia\Core\Install\Database` PDO wrapper (`insertSql()`)
-- `module.xml` - XSD `module-2_2.xsd`; `config.xml` - optional legacy
+- `module.xml` - XSD `module-2_2.xsd`; `config.xml` - required file, legacy content (may stay empty)
 - `PropelResourceInterface` / `PropelResourceTrait` - base API resource
 - `AbstractTranslatableResource` / `TranslatableResourceInterface` / `I18nCollection` - i18n API
 - `ResourceAddonInterface` / `ResourceAddonTrait` - native resource extension (auto-tagged)
