@@ -327,6 +327,10 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 - The core disables MySQL's strict transaction mode at boot. A test that expects strict-mode rejection passes silently; prove such a test can fail by sabotaging the code it covers.
 - CI runs MySQL 8, a DDEV bench may run MariaDB, and they do not agree on fractions of a second: MySQL 8 **rounds** a value inserted into a `DATETIME`/`TIMESTAMP(0)` column to the nearest second, MariaDB truncates it (`10:00:00.789` is stored as `10:00:01` on MySQL 8, `10:00:00` on MariaDB 10.11). A test that compares a stored date with `new \DateTime()` must compare at the second, or freeze the clock.
 - A header snapshot holding a clock-dependent value (`expires` of a cookie, `date`) never matches twice: freeze the clock, or mask the value before comparing (`preg_replace('/expires=[^;]+/', 'expires=<now>', ...)`).
+- `information_schema` column names come back upper case on MySQL 8 (`IS_NULLABLE`) and as written on MariaDB: alias every column you read (`is_nullable AS is_nullable`), or a schema test passes locally and fails in CI.
+- A query-count test measures its first call cold: the first call of a process also reads module configuration, the default country or the tax rules. Warm the code path up with the same data (create the fixtures first) before counting, and prove the test by sabotaging the code into an N+1.
+- The kernel removes `ONLY_FULL_GROUP_BY` from the session `sql_mode` at boot. A test connection opened without booting the kernel keeps the server mode, and core queries that group loosely (tax rules) then fail on MySQL 8: an artefact of the test setup, not a production bug.
+- A test that needs an order, a customer or another module builds it with `FixtureFactory`; it never skips itself when demo data is missing, and never picks a random row with `findOne()`.
 - PHPUnit 11.5 has no `--repeat`. To run a test many times (a flaky one, a race), loop in the shell or use a data provider.
 - A test or CI job that hangs on an `ALTER TABLE` inside a module update is a metadata lock, not a slow query: see the trap table of `modules.md` §10.
 
