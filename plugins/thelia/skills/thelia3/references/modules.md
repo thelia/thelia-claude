@@ -389,10 +389,12 @@ parameters:
             path: Controller/ThingController.php
 ```
 
-**Tests.** The job runs `phpunit.xml.dist` / `phpunit.xml` of the module when present, from the root of the Thelia checkout, the module being copied to `local/modules/<Code>`. From there the bootstrap of the core is three levels up:
+**Tests.** The job runs `phpunit.xml.dist` / `phpunit.xml` of the module when present, from the root of the Thelia checkout, the module being copied to `local/modules/<Code>`. The checkout holds the module, `Cheque` and `CustomDelivery`, and nothing else: no demo data, no other module. The database is `thelia_test` (module tests may refuse a name that does not end with `_test`), and the job writes an empty `bootstrap.php` at the root when there is none, for bootstraps written for a `thelia-project` root (`require getcwd().'/bootstrap.php'`). A test that needs an order, a customer or another payment module builds it with `FixtureFactory` (never `markTestSkipped` when the data is missing, never a random `findOne()`), and a test that renders a shared hook asserts on the module's own markup, not on the whole hook output. From there the bootstrap of the core is three levels up:
 
 ```xml
 <phpunit bootstrap="../../../tests/bootstrap.php" ...>
 ```
 
 Without a config of its own, the core's `phpunit.xml.dist` runs the module's `Tests/` or `tests/` directory, with `bootstrap.php` of that directory when it has one. A bootstrap that does not load the core's `tests/bootstrap.php` (Composer autoloader and generated Propel models) must find the autoloader itself.
+
+**Reading a red job.** "Signal: install on Thelia main" runs with debug on and the module in `local/modules`: it is the job that shows a `configureServices()` that throws (see the exclusion trap in the main skill), while the published install, without debug, stays green. The GitHub annotations of a job stop at 10 errors: for the full PHPStan list, reproduce the job locally (published shop from Packagist with the module as a path repository, then the `phpstan.sh` of `ReusableWorkflow`). A module still tested with `PHPUnit_Framework_TestCase` is ported to `PHPUnit\Framework\TestCase` (and `IntegrationTestCase` when it reads the database).

@@ -157,6 +157,8 @@ final class MyModule extends BaseModule
 
 ### 3.1 Lifecycle and DI
 - `configureServices()` static is **REQUIRED** in the Module class: without it, zero classes are scanned (auto-registration was reverted).
+- Exclude the directories that hold no class **relative to the module**: `->exclude([__DIR__.'/I18n/*'])`. Never `THELIA_MODULE_DIR.'MyModule/I18n/*'`: that constant is `vendor/thelia/modules/`, so a module living in `local/modules/` (zip uploaded from the back office, development) scans its translation files as classes, `configureServices()` throws "Expected to find class ...\I18n\...", and outside debug the core only logs it: the module runs with **no service at all**.
+- `update()` runs inside the core's transaction, right after the core wrote the new version to `module`. A schema change there (`ALTER TABLE` in `Config/update/*.sql`) commits that transaction implicitly on MySQL. On a core that has it (3.3+), put DDL in `postUpdate(string $currentVersion, string $newVersion)`, called once the update is committed (not on install, not retried if it fails: keep it idempotent). Never run DDL on a second connection from `update()`: on MySQL 8 the core transaction holds metadata locks on every table linked to `module` by a foreign key, and the `ALTER` waits for them forever (`lock_wait_timeout` defaults to one year).
 - `module.xml` minimal (metadata + `<fullnamespace>`).
 - `config.xml`: OPTIONAL - only if `<exports>`, `<imports>`, `<parameters>`, or a `<loop name="alias">` that differs from the auto snake_case name.
 - `local/modules/` takes PRIORITY over `vendor/thelia/modules/`.
@@ -227,6 +229,11 @@ final class MyModule extends BaseModule
 | `#[Required]` setter for a dependency of a `BaseHook` | left unwired by autowiring, `render()` throws, hook isolation swallows it, blank output | constructor injection forwarding the parent arguments |
 | `$request->get('x')` | ambiguous: searches attributes, then query, then body | read `$request->attributes` / `query` / `request` explicitly |
 | `Thelia\Install\Database` (without `\Core`) | legacy namespace | `Thelia\Core\Install\Database` |
+| `Thelia\Core\HttpFoundation\Response`, `Response::create()`, `JsonResponse::create()` | removed (fatal when the path runs) | `Symfony\Component\HttpFoundation\Response`, `new Response($content, $status)` (content first) |
+| `Thelia\Exception\OrderException`, `Thelia\Core\Template\ParserResolver`, `Thelia\Files\Exception\ProcessFileException` | moved | `Thelia\Domain\Order\Exception\OrderException`, `Thelia\Core\Template\Parser\ParserResolver`, `Thelia\Core\File\Exception\ProcessFileException` |
+| `XxxTableMap::TITLE` (constant without prefix) | Propel 2 column constants | `XxxTableMap::COL_TITLE` |
+| `@method static XxxQuery create()` docblock on a query class | declares an instance method that hides the static `create()` ("Static call to instance method") | remove the docblock line |
+| Smarty plugins (`TheliaSmarty\Template\AbstractSmartyPlugin`), `.html` Smarty templates, loops no Twig template calls | Smarty is not part of Thelia 3 | delete them from a module migrated to Twig (minor version bump) |
 | `new Database($con->getWrappedConnection())` | constructor accepts `ConnectionInterface` | `new Database($con)` |
 | `ContainerAwareInterface` (services, outside commands) | deprecated | explicit injection |
 | `ORDER_SET_POSTAGE` event | deprecated | `CART_SET_POSTAGE` |
@@ -253,6 +260,9 @@ final class MyModule extends BaseModule
 | `getRequest()` from `BaseModule` in CLI | `RuntimeException` | guard `$container->has('request_stack')` |
 | `active-front-template` = non-existent directory | FlexyBundle crashes at boot | always a valid `flexy` value |
 | `postActivation()` throws exception | transaction rollback + module re-deactivated | idempotent `is_initialized` guard |
+| `URL instance is not initialized` during `postActivation()` in CLI | saving a model that generates a rewritten URL (a `Folder`, a `Content`...) needs `URL::getInstance()`, and `module:post-activate-all` does not instantiate the URL service | `$this->getContainer()->get('thelia.url.manager')` before the `save()` |
+| `hook.event_listener` tag without `type` in `config.xml` | before core 3.3 the container compilation stops on a `TypeError` | always declare `type="front"` (or `back`, `email`, `pdf`) |
+| `Undefined variable $tax` then `TypeError` | `Order::getTotalAmount(&$tax)` takes the tax by reference, an undefined variable arrives as `null` | `$tax = 0;` before the call |
 | `getModuleCode()` != first FQCN segment | `RegisterHookListenersPass` `explode('\\')[0]` does not match DB | folder = class = FQCN root |
 | `getPropelRelatedTableMap()` returns null | `PropelCollectionProvider` NPE | always `new XxxTableMap()` on concrete resource |
 | `getCartFromSession()` can be null | no session cart | `getOrCreateFromSession()` for writes |
