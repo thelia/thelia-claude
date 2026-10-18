@@ -85,6 +85,8 @@ Place `{module}/templates/frontOffice/flexy/mytemplate.html.twig`. The kernel sc
 
 Priority: active theme -> parents -> modules (activation order) -> `default`.
 
+A module template placed under `{module}/templates/frontOffice/default/` is rendered under every front theme, Flexy included. When the theme ships a file at the same path, the theme's file wins over the module's.
+
 To force priority: `addTemplateDirectory(..., $unshift = true)` - not natively exposed, requires an event listener.
 
 Cache: `var/cache/{env}/module_template_dirs.php` - not auto-invalidated on activation/deactivation outside `module:post-activate-all`. Clear as needed.
@@ -97,7 +99,7 @@ Cache: `var/cache/{env}/module_template_dirs.php` - not auto-invalidated on acti
 |---|---|---|
 | `resources(path, params, format?)` | `string, array=[], ?string='jsonld'` | Internal API Platform call |
 | `attr(type, name)` | `string, string` | Contextual attributes (`cart`, `customer`, `product`...) |
-| `loop(name, type, params)` | - | **@deprecated** |
+| `loop(name, type, params)` | - | **@deprecated**, but still works and also calls the loops of modules (a Smarty `{ifloop}` / `{elseloop}` pair becomes `{% for %}` over `loop()` with `{% else %}`) |
 | `loopCount(type, params)` | - | **@deprecated** |
 
 `FlexyBundleExtension`: `attributeAv(?ProductSaleElements)`, `getCurrentCustomer()`.
@@ -370,6 +372,8 @@ Emails: Twig templates in `templates/email/default/` (`.html.twig` + `.txt.twig`
 
 PDF: Twig templates in `templates/pdf/default/` (admin invoices and delivery slips), rendered with dompdf. Generation is event-driven: dispatch `TheliaEvents::GENERATE_PDF` with a `PdfEvent($html)` and `Action\Pdf` produces the document. A module can listen to that event at a higher priority to swap the renderer.
 
+Resolution order for emails: a template of the same name in the email theme (for example `order_shipped`) wins over the module's. Name a module's templates `<module>_<message>` so a theme cannot shadow them by accident, and, when renaming the files of an existing message, update its `message` row with a SQL update script of the module.
+
 Both template sets are Twig in Thelia 3. A `.html` (non-Twig) email or PDF template is a Thelia 2 leftover.
 
 ## 10. Forms and the form theme
@@ -443,6 +447,10 @@ Simple option (theme coupling): place the component in the active theme's `compo
 Flexy exposes `GET /sitemap` and `GET /sitemap.xml` (alias) via `FlexyBundle\Controller\SitemapController`. Rendering goes through `FlexyBundle\Service\SitemapGenerator`, cache-backed on `thelia.cache` (TTL configurable via `ConfigQuery::read('sitemap_ttl', '7200')`). The `sitemap.html.twig` template lives at the root of the active theme and consumes `resources('/api/front/{categories,products,folders,contents}', {'visible': 1})`. Accepted parameters: `?lang=<code>` (404 if unknown lang), `?context=catalog|content` (404 if other value), `?flush=1` to force cache regeneration.
 
 To customize: override `sitemap.html.twig` in the child template, or inject `SitemapGenerator` in a module controller to wrap the render (custom URL addition, multi-file sitemap).
+
+### TheliaBlocks rendering
+
+Each block type resolves to `blocks/<type>.html.twig`, looked up in the active theme first, then in the module that provides the type. A block with no Twig template is skipped with a simple warning in the logs: a Smarty-only block silently disappears from the page, so port its template to `.html.twig`.
 
 ## 15. Traps
 

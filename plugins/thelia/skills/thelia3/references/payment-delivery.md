@@ -169,7 +169,7 @@ public function destroy(?ConnectionInterface $con = null, $deleteModuleData = fa
 }
 ```
 
-The `.html.twig` / `.txt.twig` templates placed in `{module}/templates/email/default/` are automatically resolved by `TwigParser` (the kernel scans `TemplateDefinition::EMAIL` in `getStandardTemplatesSubdirsIterator()`). The `message` table row must point to them via `html_template_file_name` / `text_template_file_name`.
+The `.html.twig` / `.txt.twig` templates placed in `{module}/templates/email/default/` are automatically resolved by `TwigParser` (the kernel scans `TemplateDefinition::EMAIL` in `getStandardTemplatesSubdirsIterator()`). The `message` table row must point to them via `html_template_file_name` / `text_template_file_name`. A template of the same name in the email theme wins over the module's: prefix the names with the module (`<module>_<message>`), and fix the existing row with a SQL update script when you rename.
 
 ### Callback / IPN
 

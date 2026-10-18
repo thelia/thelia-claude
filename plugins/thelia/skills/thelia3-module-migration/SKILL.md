@@ -38,7 +38,7 @@ description: "Porting a Thelia 2 module to Thelia 3: directory and namespace lay
 4. **`config.xml`**: strip `<services>`, `<hooks>`, `<loops>`, `<forms>`, `<commands>` (see section 3). They are now auto-discovered.
 5. **`routing.xml`**: deprecated in T3. Delete it and declare every route with `#[Route]` PHP 8 attributes on controllers.
 6. **`schema.xml`**: adapt table namespaces and `external-schema` declarations for core FKs.
-7. **Hooks**: convert `<hooks>` XML to `extends BaseHook` + `static getSubscribedHooks()`. Rewrite the back-office templates to Twig under `templates/backOffice/default-twig/`.
+7. **Hooks**: convert back-office, email and PDF `<hooks>` XML to `extends BaseHook` + `static getSubscribedHooks()`; convert front hooks to `ThemeHookInterface` (Flexy never renders a `BaseHook`). Rewrite the back-office templates to Twig under `templates/backOffice/default-twig/`.
 8. **Loops**: `BaseLoop` is `@deprecated`. Keep it only where an existing `{loop}` call still depends on it. For front-office, migrate to API Resources.
 9. **Front templates**: rewrite `.tpl` Smarty to `.html.twig` Flexy. `{loop}` becomes `resources()`. Manual JS becomes LiveComponents + Stimulus.
 10. **API**: expose models via `PropelResourceInterface` (see section 5). To extend a native resource, use `ResourceAddonInterface`.
@@ -53,7 +53,7 @@ description: "Porting a Thelia 2 module to Thelia 3: directory and namespace lay
 | XML element | T3 replacement |
 |---|---|
 | `<services>` (business services) | `configureServices()` with `load()->autowire()->autoconfigure()` |
-| `<hooks>` | `extends BaseHook` + `static getSubscribedHooks()` |
+| `<hooks>` | back/email/PDF: `extends BaseHook` + `static getSubscribedHooks()`; front: `ThemeHookInterface` |
 | `<loops>` (except aliases) | `extends BaseLoop` (auto snake_case) or migrate to API Resource |
 | `<forms>` | `extends BaseForm` + `static getName()` |
 | `<commands>` | `#[AsCommand]` + autoconfigure `console.command` / `thelia.command` |
