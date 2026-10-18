@@ -128,7 +128,7 @@ CLI: `ModuleManagement::installModule()` validates, inserts into DB, dispatches 
 
 Canonical convention: PHP 8 `#[Route]` on controllers. `ModuleAttributeLoader` (`ModuleAttributeLoader.php:35`) scans `Controller/` of each active module with `AttributeDirectoryLoader` + `AttributeRouteControllerLoader`.
 
-`routing.xml` is deprecated for modules. `#[Route]` attributes are the only documented way to declare module routes.
+`routing.xml` is deprecated for modules. `#[Route]` attributes are the only documented way to declare module routes. An empty or fully commented `Config/routing.xml` is still loaded and raises a deprecation: delete the file once the routes are attributes.
 
 Module prefix: override `static getRoutePrefix(): string` (NOT the deprecated `getAnnotationRoutePrefix()`).
 
@@ -290,6 +290,10 @@ Consequences:
 - **In PHP, always specify the module domain** (`trans('X', [], 'mymodule')`): without it, the `core` catalog is queried, not the module's.
 - **Fallback = raw key**: if the key is missing from the catalog, `Translator::trans()` returns `strtr($id, $parameters)` - the source string as-is (gettext model: the string IS the key). An untranslated string displays in plain text (often the English source), with no error - a silent trap if you assume the translation is loaded.
 
+#### Translation domains follow the template folders
+
+A module's BO domains are derived from its template directories: `<module>.bo.default` exists only while `templates/backOffice/default/` (Smarty) does. Removing that folder unregisters the domain, and every string using it falls back to the raw key. When porting to Twig, move `I18n/backOffice/default` to `I18n/backOffice/default-twig` and use `<module>.bo.default-twig` everywhere, forms included.
+
 #### `Lang::getDefaultLanguage()` is not the request locale
 
 `Lang::getDefaultLanguage()` returns the language marked as default **in the store** (often `en_US` on a fresh install), independent of the current user. To create/display i18n content in the active interface language, use `$request->getLocale()` - never the default language. A common mistake: content created from a `fr_FR` UI gets persisted in `en_US` because the controller passed the store default language as the locale.
@@ -321,6 +325,7 @@ Consequences:
 | `new Database($con->getWrappedConnection())` | `new Database($con)` - accepts `ConnectionInterface` |
 | `getRequest()` from BaseModule in CLI | guard `$container->has('request_stack')` |
 | `RegisterHookListenersPass` DB query at compile time | DB must be available at cache warmup |
+| Module removed from disk (or its files deleted) while still active in the database | the container fails to build, console and site both break: run `module:deactivate <Module>` BEFORE removing the files |
 | `ConfigQuery::read()` returns a stale value | PSR `thelia_config` cache (see §11) - force via `ConfigQuery::write()` or purge |
 | `update()` or `postActivation()` hangs on an `ALTER TABLE` | the core runs both inside a transaction (`ModuleManagement::updateModule`); the transaction keeps a metadata lock on the tables it touched, so DDL sent through another connection waits for it forever on MySQL 8. Run the module's SQL through the `$con` it receives (`new Database($con)`), never through a second `Propel::getConnection()` or PDO handle |
 

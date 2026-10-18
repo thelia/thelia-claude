@@ -167,6 +167,7 @@ If tests hit the wrong DB: delete `var/propel/test/` and re-run `bin/test-prepar
 
 **DDEV danger - shell env overrides `.env.test`**: DDEV (`web_environment`) injects `DATABASE_*` at the **shell** level. `ddev exec php ...` sees them in `$_SERVER` before `Dotenv::bootEnv()` (which uses `overrideExistingVars=false`) runs -> **no `.env.test` can override an already-present variable**. A script or test targeting the `test` DB silently operates on the **dev** DB (`db`) and may wipe it. Symptom: "Creating database db" when `test` was expected, Propel DSN with `dbname=db`. Workarounds:
 - Composer scripts chaining `--env=test`: prefix with `env -u DATABASE_HOST -u DATABASE_PORT -u DATABASE_NAME -u DATABASE_USER -u DATABASE_PASSWORD APP_ENV=test ...`
+- `vendor/bin/phpunit` run directly inside the DDEV container (not through `composer`) inherits `DATABASE_NAME` from the environment and runs against the dev database. Prefix it: `env -u DATABASE_HOST -u DATABASE_PORT -u DATABASE_NAME -u DATABASE_USER -u DATABASE_PASSWORD APP_ENV=test vendor/bin/phpunit ...`
 - Standalone script: `unset($_SERVER[$k], $_ENV[$k]); putenv($k);` for each `DATABASE_*` **before** `bootEnv()`.
 
 ## 4. Running tests

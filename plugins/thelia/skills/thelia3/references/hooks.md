@@ -278,7 +278,9 @@ Key facts:
 - Error isolation per handler: rethrow in debug, log + skip in prod.
 - Return `''` when there is nothing to show (module installed but not configured).
 - One handler can answer several points (`supports()` with `in_array`, `match` in `render()`).
-- Layout points pass NO parameters - inject `RequestStack` to know the current page (SEO/analytics modules).
+- Layout points pass NO parameters - inject `RequestStack` to know the current page (SEO/analytics modules). Page points pass their entity: read the id from `$parameters` (`account.bottom` receives `customer`, `product.details.bottom` receives `product`), never from the request.
+- Flexy renders ONLY services implementing `ThemeHookInterface` (discovered automatically, no registration). A `BaseHook` declared through `getSubscribedHooks()` is never rendered by `theme_hook()`, even with a matching hook name: port it to `supports()` + `render()`.
+- Typical insertion points: `layout.head.bottom`, `layout.body.bottom`, `account.bottom` (check the active theme for the exact list).
 - Flexy points: `layout.head`, `layout.body.top`, `layout.header.bottom`, `layout.footer.top`, `layout.body.bottom`, then `home|product|category|cart|checkout|account|order-placed` `.top`/`.bottom` plus `product.details.bottom`. Primary use case: SEO / JS analytics (`layout.head` for meta/JSON-LD/GTM script, `layout.body.top` for the GTM noscript).
 - `final readonly class` works here (constructor DI, unlike `BaseHook`).
 
@@ -334,7 +336,7 @@ For all new front development: **API Resources + `resources()`** or **LiveCompon
 | `getModuleCode()` != first FQCN segment | folder = class = FQCN root |
 | `RegisterHookListenersPass` DB query at compile time | DB must be available at cache warmup |
 | `getSubscribedHooks()` not static | must be static (`RegisterHookListenersPass:71`) |
-| Front hook via `BaseHook`/`getSubscribedHooks()` (T2 reflex) | front = theme hooks (`ThemeHookInterface` + `theme_hook()`), `BaseHook` is BO/email/PDF only |
+| Front hook via `BaseHook`/`getSubscribedHooks()` (T2 reflex): the block silently never appears in Flexy | front = theme hooks (`ThemeHookInterface` + `theme_hook()`), `BaseHook` is BO/email/PDF only |
 | Inventing a theme hook name in a module | the THEME declares the points - check `theme_hook(` calls in the active theme first |
 | `EventSubscriberInterface` but service not public | autoconfigure makes it public automatically, or `setPublic(true)` |
 | `BaseLoop` for new development | prefer API Resources + `resources()` |

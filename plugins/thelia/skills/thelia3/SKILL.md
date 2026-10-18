@@ -185,7 +185,7 @@ final class MyModule extends BaseModule
 ### 3.4 Events and back-office extensions
 - Listeners: `EventSubscriberInterface` (dominant in core) or `#[AsEventListener]` (to adopt when appropriate).
 - Back-office hooks: `extends BaseHook` + `getSubscribedHooks()` -> **AUTO-tagged, NO `<hooks>` declaration required**.
-- Front theme hooks: implement `ThemeHookInterface` -> AUTO-tagged `thelia.theme_hook`; the theme declares its points with `theme_hook('page.zone.position')` (Flexy: 20 points, primary use SEO/analytics). Pure code, no DB, no admin.
+- Front theme hooks: implement `ThemeHookInterface` -> AUTO-tagged `thelia.theme_hook`; the theme declares its points with `theme_hook('page.zone.position')` (Flexy: 20 points, primary use SEO/analytics). Pure code, no DB, no admin. Flexy renders only `ThemeHookInterface` services: a `BaseHook` is never shown in the front.
 - Legacy loops: `extends BaseLoop` -> AUTO-tagged, snake_case auto. `BaseLoop` is `@deprecated` - prefer API Resources.
 - Back-office hook templates are Twig in the default-twig theme. See the `thelia3-backoffice-twig` skill for back-office theming, hooks, i18n, and forms.
 - Details: [references/hooks.md](references/hooks.md)
@@ -219,7 +219,7 @@ final class MyModule extends BaseModule
 | `getAnnotationRoutePrefix()` | `@deprecated BaseModule` | `getRoutePrefix()` |
 | `#[TaggedIterator]` / `#[TaggedLocator]` | deprecated SF 7.1 | `#[AutowireIterator]` / `#[AutowireLocator]` |
 | `DataAccessService::loop()` / `loopCount()` | `@deprecated` | `resources('/api/front/...')` |
-| Twig `loop()` / `loopCount()` | same | `resources()` |
+| Twig `loop()` / `loopCount()` | same; `loop()` still reaches module loops | `resources()` |
 | `BaseLoop` extends | `@deprecated` | API Resources (`PropelResourceInterface`) |
 | `extends BaseFrontController` in LiveComponent | service locator anti-pattern | explicit constructor injection |
 | `final readonly` on Thelia controllers | incompatible with `#[Required]` setters in `BaseController` | follow hierarchy without `readonly` (ok for services and DTOs) |
