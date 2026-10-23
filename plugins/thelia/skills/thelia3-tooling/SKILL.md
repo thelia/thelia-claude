@@ -132,10 +132,6 @@ A package installed through `installer-paths` (modules, themes) is reinstalled f
 
 Purging `var/cache/prod` must always be followed by an explicit `cache:warmup`. The LiveComponents template map is produced by a cache warmer that nothing rebuilds lazily, so a purged-but-not-warmed production answers `500` on the first component render. `cache:clear` in production is the wrong tool for the same reason (see the Thelia console section).
 
-## The update loop replays everything
-
-The updater matches the version marker stored in the database against the update script filenames with a strict lookup. A marker that matches no filename (a pre-release suffix, a renamed script) makes it replay every script from the first one instead of resuming. Check the marker before running an update on a real database.
-
 ## `thelia:dev:db:diff` is never empty
 
 The command diffs a database against the Propel schema (`local/config/schema.xml`) and prints the SQL that would align them. Even a fresh install is not at zero: thousands of lines of `TIMESTAMP`/`DATETIME` type and foreign key name differences. Reading "no output" as the success criterion of an upgrade never works.

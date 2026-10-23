@@ -153,11 +153,13 @@ See [testing.md](testing.md) for the pattern.
 To migrate a T2.6 module to T3 (Symfony 7.4 LTS, AP 4.3 standalone, front Twig/Flexy, tests `IntegrationTestCase`/`FixtureFactory`), see the **skill `thelia3`**.
 
 Summary of major T2.6 -> T3 changes:
-- XML hooks removed in favor of PHP `#[Hook(...)]` attributes auto-discovered (in T3, `BaseHook` + `getSubscribedHooks()` AUTO-tags WITHOUT XML)
+- Hooks: back-office hooks are `BaseHook` classes with `getSubscribedHooks()`, auto-discovered without XML; front hooks are theme hooks (`ThemeHookInterface` + `theme_hook()`)
 - Loops auto-discovered (same)
 - API Platform 4.3 standalone (`api-platform/symfony`), no more bundle
 - Front Twig + FlexyBundle + LiveComponent + TwigComponent: rewrite front Smarty `.html` files to `.html.twig`
 - `IntegrationTestCase` + `ApiTestCase` + `FixtureFactory` + isolated test DB
-- Back-office remains Smarty (continuity)
+- Back office: the Twig `default-twig` theme; Smarty is not part of the core (the `TheliaSmarty` module is optional)
 
 For a multi-version T2/T3 module: abstract the layers (queries via Repository, services, events) through common interfaces, duplicate hooks/forms/loops/templates per version.
+
+Moving a live shop (database, mail and PDF themes, cutover): see the thelia3-project-migration skill.

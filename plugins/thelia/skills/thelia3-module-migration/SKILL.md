@@ -63,6 +63,8 @@ Keep in config.xml if still needed:
 - `<parameters>`
 - `<loop name="alias">` when alias differs from auto snake_case
 
+Before deleting a `<service>`, read its tags. `configureServices()` with autoconfiguration registers the class but not a tag the class does not imply: a router that carried `<tag name="router.register" priority="..."/>` is never added to the chain router, and its rules silently stop applying. Re-declare such tags (and their priority) in `configureServices()`.
+
 ---
 
 ## 4. Front templates: Smarty to Twig
@@ -264,6 +266,7 @@ Rules:
 | `ApiPlatform\Exception\*` (removed in AP 4) | `ApiPlatform\Metadata\Exception\*` |
 | `openapiContext:` on an operation (`Get`, `Post`, ...) | `openapi: new Operation(...)` (still supported on `#[ApiProperty]`) |
 | Doctrine `EntityManager` | Propel `XxxQuery::create()` |
+| `Thelia\Files\FileModelInterface` | `Thelia\Core\File\FileModelInterface`; generated getters return `?string`, align the implementing signatures |
 
 ---
 
@@ -491,7 +494,7 @@ Not every popular Thelia 2 module gets a Thelia 3 port. These are deliberately l
 | Stale Twig cache after template override | `cache:clear` |
 | `module_template_dirs.php` stale | `cache:clear` after activation |
 | `var/propel/test/` cache pointing at wrong database | `bin/test-prepare` auto-purges it |
-| `THELIA_VERSION` still read as `'2.6.0'` | The T3 constant carries the current 3.0 release; a 2.x value means the old core is still autoloaded |
+| `THELIA_VERSION` still read as `'2.6.0'` | the old core is still autoloaded. The constant is the code release and can lag behind the update scripts on a development branch; the database level is `config.thelia_version` |
 | `getPropelRelatedTableMap()` returns null on concrete resource | Always return `new XxxTableMap()` |
 | LiveProp with Propel object | Use DTOs or scalar values only |
 | `resources()` called from CLI | Unusable, throws `RuntimeException` (no main request). Add a guard or avoid. |
@@ -515,6 +518,10 @@ Not every popular Thelia 2 module gets a Thelia 3 port. These are deliberately l
 | Smarty templates deleted while PHP still renders them | Grep every `render()`/`hook` call before deleting; the feature breaks silently |
 | Module bump breaks a custom theme | Two ways: a removed API fatals, or a new form protection depends on a hook zone the theme does not render (silent). Check both on bump |
 | `DOMDocument` or `xmllint` missing when validating `module.xml` | The host PHP may lack `ext-dom`; validate inside the project's container |
+| A loop built with `new` in a module breaks after a core upgrade | its constructor gained dependencies; get loops and services from the container, never instantiate them |
+| Controller extending a class of the Thelia 2 `Front` module | that module does not exist in Thelia 3: the class is missing and the container stops compiling (outside debug the core only logs it). Extend `BaseFrontController`, use the `checkout_*` routes |
+| Maintenance mode written into `public/index.php` has no effect | the front controller is the Symfony Runtime; use a `kernel.request` listener, after the session for admin access and before routing |
+| Ported template answers 500 with a Twig syntax error on a line that looks right | a non-breaking space (`\xC2\xA0`) copied from the Smarty source inside `{{ }}`; grep the ported templates for it |
 
 ---
 
