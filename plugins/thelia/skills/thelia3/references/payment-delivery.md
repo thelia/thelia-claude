@@ -351,3 +351,12 @@ Back-office template (Twig): `templates/backOffice/default-twig/mypayment/config
 | `ORDER_SET_PAYMENT_MODULE` | - | Payment selection in cart |
 
 **ORDER_BEFORE_CREATE does NOT exist**. To intercept before creation: use `ORDER_BEFORE_PAYMENT` (the last point BEFORE persistence).
+| 500 on a status change in a module that injected `ParserInterface` for its e-mail | the service is `ParserFallback`, whose every method throws. Pass the variables as message parameters to `MailerFactory::sendEmailToCustomer($code, $customer, $params)` and ship Twig templates in the e-mail theme |
+| Failure to send hidden in tests | `sendEmailToCustomer()` / `sendEmailMessage()` catch `EmailNotSentException` and log it; call the `...OrFail()` variant where the failure matters |
+| A refusal at order placement shows a 500 | throw `Thelia\Domain\Checkout\Exception\InvalidPaymentException`, `CheckoutException` or `Thelia\Domain\Order\Exception\StockShortageException` (or a subclass): the checkout catches these, not a module's own exception |
+| A listener on `MODULE_PAYMENT_IS_VALID` has no effect | the core judge (`Action\Payment`, priority 128) writes the validity after the module event; refine it with a priority below 128 |
+| Status change and stock movement skipped after a module resent the confirmation | `Action\Order::updateStatus` listens to `ORDER_UPDATE_STATUS` at 128; never `stopPropagation()` above it, and resend a confirmation with a new `OrderEvent`, not the one being dispatched |
+| `ORDER_PAY` listener finds no cart (`filterByCartId(null)` matches `IS NULL`) | once the order of the session cart is paid, `Session::getSessionCart()` hands out a new, unsaved cart; read `order.cart_id` |
+| Logic on `ORDER_BEFORE_PAYMENT` misses back-office or imported orders | only `Action\Order::create` (the checkout) dispatches it; what must follow every order creation listens to `ORDER_PRODUCT_AFTER_CREATE` |
+| Return from the payment page arrives without session | a cross-site `POST` does not carry the `SameSite=Lax` session cookie; configure the provider to return by `GET`, or find the order from a signed parameter, never from the session alone |
+| Payment, cancel or retry route keyed by order id | check that the order belongs to the logged-in customer, and refuse to mark paid an order that was cancelled meanwhile (late callback): answer the provider and flag it for refund |

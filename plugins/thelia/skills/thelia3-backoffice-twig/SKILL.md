@@ -115,6 +115,7 @@ When the legacy Smarty bundle and the Twig bundle both register a route under th
 - A module configuration page registers through the module-configuration hook point and is gated by a capability check; the module must be reactivated after the hook class is added, or it never registers.
 - With both admin bundles active, a mutable "current parser" static can be overwritten by whichever bundle renders first; a later Twig hook fragment then resolves through the Smarty parser and renders empty. Prefer a Twig-only admin for any rendering diagnosis.
 - A new `|trans` key needs its translation in the same commit. A missing key falls back to the raw key with no error.
+- `safe_hook()` swallows the errors of its listeners (it isolates each listener, so one faulty module, for instance one whose Propel models were never generated, only loses its own fragment). An empty zone with no error on screen means a listener failed: read `var/log`, then switch the call to `hook()` once the module is ported.
 
 ## Tests against the Twig back office
 

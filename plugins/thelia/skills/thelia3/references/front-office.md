@@ -473,6 +473,12 @@ Each block type resolves to `blocks/<type>.html.twig`, looked up in the active t
 | `app.flashes()` or `app.user` renders nothing | the parser's `app` is a four-property stub, not `AppVariable` - read flashes from `app.session.flashBag` |
 | A label translated in PHP shows its raw key | plain `TranslatorInterface` autowires to Thelia's `Translator`, which has no `messages` catalog - inject `#[Autowire(service: 'translator')]` |
 | Front office deployed with no CSS or JavaScript | `asset-map:compile` was not run; AssetMapper's dev server is off outside debug |
+| A template meant for one controller is reachable as `/?view=<name>` | the front catch-all renders any template of the theme named by `view` (query or body); guard its variables with `is defined` and answer 404, or restrict the views a request may name |
+| A `NotFoundHttpException` thrown while rendering answers 500 | Twig wraps it in a `RuntimeError`; decide the 404 in the controller or component, before rendering |
+| `false\|default(true)` renders `true` | `default` treats `false` as empty; write `(flag ?? true)`, with parentheses when `not` precedes it |
+| A visit that resets a state (checkout step, cart) fires on mere hover | Turbo and speculation rules prefetch links with `GET`; ignore requests that carry `Sec-Purpose: prefetch` (or `X-Sec-Purpose`) in anything that writes |
+| A `LiveAction` trusts a quantity, a product sale element or a delivery module id posted by the browser | every LiveProp and action argument is user input; check it again on the server against the stored cart line or the list of valid values |
+| Generic back-office labels (`Search`, `Edit`, `Account`) replace the theme's text in the front | the back-office theme's `translations/messages.<locale>.php` joins the same `messages` domain; give the theme its own keys |
 
 ## Front-office pitfalls seen in production
 
@@ -486,3 +492,5 @@ Each block type resolves to `blocks/<type>.html.twig`, looked up in the active t
 - Flexy's minimal registration creates a customer with no address until the checkout. Any code that assumes `getAddresses()` is non-empty is a latent 500.
 - A theme template that calls a Twig function provided by a module has a compile-time dependency on that module: with the module disabled, the whole front 500s on an undefined function. Guard the call or ship the function with the theme.
 - A `|trans` in a module's front template renders the raw key untranslated (unlike the back office); translate labels in PHP with the module domain and pass them to the template.
+- A child-theme component that extends a Flexy component class breaks as soon as Flexy adds a constructor argument, with a 500 on every page that renders it. Run PHPStan after each Flexy upgrade. A `#[LiveListener]` on a parent method is lost when the child overrides the method: PHP attributes are not inherited, declare it again.
+- A Stimulus controller without `/* stimulusFetch: 'lazy' */` is preloaded on every page with its imports. Keep eager only what every page needs and what must not fail late (payment, confirmation). A `<link rel="modulepreload">` printed before `<script type="importmap">` breaks module resolution at random on a warm cache: print preloads in the `javascripts` block after `parent()`.

@@ -334,4 +334,7 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 - A test that needs an order, a customer or another module builds it with `FixtureFactory`; it never skips itself when demo data is missing, and never picks a random row with `findOne()`.
 - PHPUnit 11.5 has no `--repeat`. To run a test many times (a flaky one, a race), loop in the shell or use a data provider.
 - A test or CI job that hangs on an `ALTER TABLE` inside a module update is a metadata lock, not a slow query: see the trap table of `modules.md` §10.
+- `bin/test-prepare` does not run every `postActivation()` of the local modules nor the SQL of modules that are only registered: their tables are missing (a payment module rendered in an invoice, a stock or sitemap table). Create them in one test support with `CREATE TABLE IF NOT EXISTS`, before the test transaction opens: DDL after `parent::setUp()` commits it.
+- `ModuleConfigQuery` keeps values in static arrays. A test that writes a module setting in SQL and rolls back keeps the cached value: call `ModuleConfigQuery::resetConfigCache()`.
+- `symfony/browser-kit` is a dev dependency of the core, so a project does not get it: `WebIntegrationTestCase` and `ApiTestCase` need it in the project's `require-dev`.
 

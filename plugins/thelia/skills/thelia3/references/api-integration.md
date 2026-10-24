@@ -639,3 +639,4 @@ Any module exposing private data on `/front/xxx` (outside `/account/`) MUST add 
 | i18n class without `extends I18n` | TypeError at runtime -> always `extends \Thelia\Api\Resource\I18n` |
 | IDOR front collection via indirect FK | `extraProperties: ['usesForCustomer' => ['joinTable']]` |
 | Front `Post` without parent ownership check | `security:` expression OR custom PersistProcessor |
+| `resources()` returns `null` for an item that exists | the operation's `security:` denied it: the check runs after the read and the denial is logged, not thrown. Log level `error`, message `Error while checking access for resource` |

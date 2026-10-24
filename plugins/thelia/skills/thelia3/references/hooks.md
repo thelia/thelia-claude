@@ -343,3 +343,5 @@ For all new front development: **API Resources + `resources()`** or **LiveCompon
 | Duplicate `<hooks>` in config.xml + `getSubscribedHooks()` | remove `<hooks>` from XML |
 | Wrong event priority | 128 = core handler, 192+ = guard, 64 = post-processing |
 | `ORDER_SET_POSTAGE` deprecated | use `CART_SET_POSTAGE` |
+| Back-office hook listener never called, log says `Hook <name> is unknown.` | the hook code has no row in the `hook` table; check `SELECT code FROM hook` before subscribing, and declare a new hook through the module's `getHooks()` |
+| A hook declared by a module becomes inactive at each activation or update | `createOrUpdateHook()` sets `active` only when the declaration carries `'active' => true`; the last module activated decides |

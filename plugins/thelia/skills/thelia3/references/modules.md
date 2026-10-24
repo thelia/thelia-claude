@@ -334,6 +334,10 @@ A module's BO domains are derived from its template directories: `<module>.bo.de
 `ConfigQuery::read()` does NOT read the `config` table on every call: `ConfigCacheService` caches a snapshot of all configs in the PSR `thelia.cache` pool (key `thelia_config`). Consequences:
 - A direct SQL `UPDATE` on the `config` table **does not invalidate** this cache -> `read()` may return the old value. Use `ConfigQuery::write()` (updates DB + cache) or force `ConfigCacheService::initCacheConfigs(true)`.
 - `bin/console cache:clear` may not purge this pool depending on its config. `php Thelia cache:clear` purges more completely (see below).
+| A statement of `Config/TheliaMain.sql` or `Config/update/*.sql` silently not run | `Database::insertSql()` splits on `";\n"`: end every statement with `;` and a newline, never two statements on one line |
+| `update()` never replays after merging two branches | both bumped `module.xml` to the same version; the core calls `update()` only when the declared version is greater than the stored one. Fix the version when the branch is merged, not when it is opened |
+| A data fix in `update()` overwrites a value the merchant changed | condition it on the version being left (`version_compare($currentVersion, 'x.y.z', '<')`); only writes that fill what is missing may run on every update |
+| Container fails only outside debug, on a module with a lowercase `tests/` folder | `exclude()` is case-sensitive: exclude `Tests/*` and `tests/*` (and `I18n/*`) relative to the module; PHPUnit is absent in production |
 
 ## 11. Useful CLI commands
 
