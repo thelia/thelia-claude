@@ -24,6 +24,52 @@ For a filterable list page, a repeatable five-layer shape keeps it clean:
 4. A Row presenter for each table row.
 5. A thin controller that wires them together.
 
+## Lists and tables
+
+Every admin list, core or module, renders through the theme's `BoDataTable` component and, when it pages, `BoPagination`. The orders list (`order/list.html.twig`) is the reference: page header, GET search form, filter chips, table, pagination. A list built any other way (jQuery DataTables, a hand-written `<table>`, a CDN script) looks and behaves differently from the rest of the admin, and it is the first thing a reviewer will ask to redo.
+
+Server side, not AJAX. The controller (or the hook, for a module configuration page) reads the filters, the sort and the page from the query string, runs one bounded query in a repository, and passes finished rows to the template. Search, filter, sort and page are links and GET forms, so every state of the list has a URL, survives a reload and works without JavaScript.
+
+```twig
+{{ component('BoDataTable', {
+    id: 'gift-cards',
+    columns: [
+        column_html('code_html', 'Code / order'|trans, 'start', 'code'),
+        column_html('customer_html', 'Customer'|trans, visibleFrom: 'lg'),
+        column_html('amount_html', 'Amount'|trans, 'end', 'amount'),
+        column_badge('status_code', 'Status'|trans, {active: 'success', inactive: 'secondary'}, labelKey: 'status_label'),
+        column_actions('_actions', 'Actions'|trans),
+    ],
+    rows: rows,
+    emptyMessage: 'No gift card matches the current filters.'|trans,
+    sortField: sort.field,
+    sortDirection: sort.direction,
+    sortKeepParams: query_params,
+}) }}
+{{ component('BoPagination', {
+    route: 'admin.module.configure',
+    currentPage: page,
+    lastPage: last_page,
+    routeParams: { module_code: 'GiftCard' }|merge(query_params),
+}) }}
+```
+
+- Columns come from the Twig helpers `column_text`, `column_html`, `column_badge`, `column_toggle`, `column_select`, `column_radio`, `column_position` and `column_actions`. Each takes a row key and a label. `sortKey` makes the header a sort link. `visibleFrom` hides a secondary column below a breakpoint, and its value moves into the row's expandable detail. Give the reference, the status and the actions no `visibleFrom`, so they stay visible on a phone.
+- A row is a flat array keyed by column key, plus `id`. Build it in a row presenter, never in the template: dates and amounts are formatted there, in the interface locale.
+- `column_text` escapes its value. `column_html` prints it raw, so every value inside it that comes from a customer or an admin goes through `htmlspecialchars()` in the presenter. Reach for `column_html` only for a link or an icon, and never put a name or a free text in it unescaped.
+- A person (customer, buyer, recipient) is shown the way the orders list shows its customer, in every list: the flag of their country before the name in bold, the name linked to their account (route `admin.customer.update.view`, `customer_id` in the query string), and the email under it, small, muted and truncated (`<div class="fw-semibold">…</div><div class="text-muted small text-truncate">…</div>`, inside a `bo-order-customer` wrapper with a bounded `max-width`). The flag is `CountryFlag::prefix($isoAlpha2)` (`BackOfficeDefaultTwigBundle\Service\I18n`); a module calls it behind `class_exists()`, since the class belongs to the theme. Load the names, emails and countries of a page in one query per table, never one per row.
+- Make the table fit a 1440 px screen, sidebar included: compare `scrollWidth` and `clientWidth` of the table wrapper in the browser. When it overflows, put a secondary value under the main one in the same cell (email under the name, amount spent under the amount, order under the code) instead of giving it a column. Keep the actions used on every visit inline (edit, send, the switch that activates or deactivates) and give the row no menu when they all fit; a menu holds only the rare actions. `visibleFrom: 'xxl'` does not help at that width.
+- A choice of language in a row (a document per language, a preview) is a small button group, one button per active language, marked by the flag of the country of its locale (`fr_FR` gives FR) with the language name in its `title`; fall back to the language code when the locale has no country.
+- An amount or a quantity with its unit takes `leftToRight: true`, or a right-to-left page splits it at its spaces; inside a `column_html` cell, wrap it in `<span dir="ltr">`. A free text written by a person takes `wrap: true`.
+- A status is a `column_badge`: a variant per code, or a `colorKey` pointing to the stored color (order statuses). It is not a sentence in a text column.
+- Row actions are a list of `RowAction` under the actions key, built in the presenter: `kind` picks the icon and the button style (`edit`, `delete`, `view`, `cancel`, `download`, `send` for an email, `activate` and `deactivate` for the switch of a row that is off or on, `custom`…; the list is `iconByKind` in `components/DataTable/cells/actions.html.twig`). An action whose kind is missing shows the three dots of `custom`: add the kind to the theme rather than living with a glyph that says nothing, `grantedAttribute` with `grantedSubject` hides an action the admin may not use, `disabledReason` shows it inert with the reason (better than hiding it), and `inMenu` or `inlineFrom` moves it into the row's menu.
+- A `RowAction` is a link (`href`) or a modal opener (`modalTarget` plus `dataAttributes`). An action that changes state (activate, cancel, delete) is never a GET link: give it a modal whose form posts with the `_token`, and pass the target URL and the row label through `dataAttributes`, as the order cancel action does. The controller answers the form with a redirect to the list, keeping its query string.
+- Sorting maps each allowed `sortKey` to a column in the repository. `ListSort::fromRequest($request, $allowedFields, $default)` rejects anything else, so a crafted `?order=` never reaches `orderBy()`. Pass the current filters as `sortKeepParams` and `routeParams`, or a sort click or a page link drops them.
+- Bound the query: page size and offset always apply, the first page included. A missing limit loads the whole table on the first visit.
+- The search form and the filter chips follow the orders list: one search field with Apply and Reset, chips for a few values (`btn-primary` when active, `btn-outline-secondary` otherwise), a collapsed advanced panel when there are more, and active filters shown as removable chips.
+- In a module configuration page (the `module.configuration` hook), the same component works: the hook reads the request, calls the module's list service and renders the fragment with `rows`. Pagination and sort links point at the module configuration route, so the filters live in that page's query string.
+- No jQuery, DataTables, select2 or flatpickr from a CDN: the theme ships none of them, and a CDN script breaks under a strict content security policy. A modal that must be filled from the server uses a small native script (`fetch`, `show.bs.modal` through `addEventListener`) and ignores a late answer for a row opened before. Use `type="date"` instead of a date picker.
+
 ## i18n: two translators
 
 The back-office uses two translation systems at once, and you need to know which one applies to a given string.
