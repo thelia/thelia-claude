@@ -225,8 +225,8 @@ public static function getSubscribedHooks(): array
 BO hooks are strings registered dynamically in the DB via `getHooks()` from modules + those placed in templates. To enumerate the extension points actually available in a given project:
 
 ```bash
-# Hooks placed in BO templates (Twig)
-grep -rn "hook('" templates/backOffice/default-twig/ | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
+# Hooks placed in BO templates (Twig): safe_hook(), hook_block() and hook_cards()
+grep -rhoE "(safe_hook|hook_block|hook_cards)\('[^']+'" templates/backOffice/default-twig/ | sed -E "s/.*\('//; s/'$//" | sort -u
 
 # Legacy hooks placed in front templates (Twig)
 grep -rn 'hook(' templates/frontOffice/flexy/ | grep -E "hook\('([^']+)'" | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
@@ -239,6 +239,8 @@ ddev exec mysql -udb -pdb thelia -e "SELECT code, type FROM hook WHERE activate=
 ```
 
 Inventing a hook code (e.g. `customer.tab-content`) that does not exist = listener silently inactive. Always verify a hook exists before attaching code to it.
+
+Read the arguments at the call too: a hook listener that expects a name the template does not pass reads `null` and falls back silently. The product tabs pass `product` (the id), never `product_id`: `hook_block('product.tab', {product: product.id, id: product.id})` and `hook_cards('product.tab-content', {product: product.id, ...})`. A statistics tab that read `product_id` showed the whole catalogue instead of the product.
 
 ## 4. Front theme hooks - `theme_hook()` + `ThemeHookInterface`
 

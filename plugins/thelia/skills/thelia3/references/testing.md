@@ -319,6 +319,7 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 | Integration, Web and Api cases skipped, CI stays green | they are skipped when no shop is installed: a CI without an installed shop proves nothing for them |
 | Cannot mock `SecurityContext::isGranted()` | it is `final`; `checkRole()` is not |
 | State leaking between tests through static caches | `ConfigQuery`, `Order` and `TaxRuleQuery` keep static caches; `ConfigQuery` and `TaxRuleQuery` expose `resetCache()` |
+| A cart fixture added through `CART_ADDITEM` is refused without a visible error | the action checks stock on every add when `check-available-stock` is on (`Action\Cart::assertStock()`, virtual products excepted): give the fixture's PSE a quantity |
 | Expecting a savepoint on a nested transaction | nested transactions are a counter, with no savepoint |
 
 ## Test infrastructure pitfalls

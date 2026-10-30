@@ -320,6 +320,7 @@ Back-office template (Twig): `templates/backOffice/default-twig/mypayment/config
 |---|---|
 | `<type>` in `module.xml` != abstract type | align `payment` / `delivery` |
 | `pay()` returns `null` without Response | must return an HTTP `Response` (redirect, HTML form...) |
+| Part of the order already paid by an instant means (gift card), and the core refuses to combine it with the module | implement the marker `BalanceChargingPaymentModuleInterface` and send `getAmountToCharge($order)` to the provider, never `Order::getTotalAmount()` (`Domain/Payment/OrderPaymentComposer.php`). Confirm through `confirmPayment()` of `BasePaymentModuleController` or with `OrderEvent::setSourceModuleCode()`, otherwise the confirmation of a cancelled order whose part was given back is refused without a trace |
 | `pay()` URL doubly absolutized | ONE absolutization only: `URL::absoluteUrl()` OR `UrlGeneratorInterface::ABSOLUTE_URL`, not both |
 | `isValidPayment()` reads Cart from Request in CLI | guard `$this->getRequest()` + try/catch + fallback `false` |
 | Webhook callback not signed | always sign + verify (HMAC) |

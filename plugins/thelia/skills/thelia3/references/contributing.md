@@ -35,3 +35,8 @@ PR template: backward compatibility, schema change with `setup/thelia.sql` plus 
 ## 3. Merging
 
 `main` is protected and merged through a merge queue (rebase method). Once the checks are green, `gh pr merge <n>` without a method flag enqueues the PR; the queue re-runs the checks on the queued commit (`merge_group` event in `test.yml`) and rebases it onto `main`.
+
+## 4. Update scripts and companion PRs
+
+- A change to `setup/update/sql/<version>.sql` must replay safely: guard each `ALTER` with a lookup in `information_schema` (the script already does it for its columns) and put it before the final `SET FOREIGN_KEY_CHECKS = 1`, not appended after it. `main` adds blocks to the same file in parallel, so expect a rebase.
+- A theme PR (Flexy, default-twig) that calls an API added by a core PR still unreleased runs its CI against the published core and fails there. Guard the call (`method_exists()`, a test skipped without the field) until the core release, then remove the guard.
