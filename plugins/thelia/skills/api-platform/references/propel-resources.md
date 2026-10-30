@@ -213,30 +213,37 @@ Structure: `MyModule/Api/Addon/ProductMyAddon.php`
 namespace MyModule\Api\Addon;
 
 use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Serializer\Attribute\Ignore;
+use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
+use Propel\Runtime\Map\TableMap;
 use Thelia\Api\Resource\Product;
-use Thelia\Model\Product as PropelProduct;
+use Thelia\Api\Resource\PropelResourceInterface;
+use Thelia\Api\Resource\ResourceAddonInterface;
+use Thelia\Api\Resource\ResourceAddonTrait;
 
-class ProductMyAddon
+class ProductMyAddon implements ResourceAddonInterface
 {
+    use ResourceAddonTrait;
+
     #[Groups([Product::GROUP_ADMIN_READ, Product::GROUP_FRONT_READ])]
     public ?string $customField = null;
 
     #[Groups([Product::GROUP_ADMIN_READ])]
     public int $reviewCount = 0;
 
-    #[Ignore]
-    public static function buildFromModel(
-        PropelProduct $propelModel,
-        Product $resource
-    ): self {
-        $addon = new self();
-        $addon->customField = $propelModel->getVirtualColumn('custom_field');
-        $addon->reviewCount = ProductReviewQuery::create()
-            ->filterByProductId($propelModel->getId())
+    public static function getResourceParent(): string { return Product::class; }
+
+    public static function getPropelRelatedTableMap(): ?TableMap { return new MyAddonTableMap(); }
+
+    public function buildFromModel(
+        ActiveRecordInterface $activeRecord,
+        PropelResourceInterface $abstractPropelResource,
+    ): ResourceAddonInterface {
+        $this->customField = $activeRecord->getVirtualColumn('custom_field');
+        $this->reviewCount = ProductReviewQuery::create()
+            ->filterByProductId($activeRecord->getPrimaryKey())
             ->count();
 
-        return $addon;
+        return $this;
     }
 }
 ```
@@ -244,7 +251,9 @@ class ProductMyAddon
 ### Addon Rules
 
 - File goes in `MyModule/Api/Addon/`.
-- `buildFromModel()` is static with the `#[Ignore]` attribute.
+- The class implements `ResourceAddonInterface`; without it the addon is neither tagged nor built. `buildFromModel()` is an instance method that returns the addon (`$this`).
+- The addon is built only when one of its properties belongs to the current serialization groups, and a write touches it only when the request carries one of its writable fields.
+- Preloading for a collection goes through `CollectionModelsLoadedEvent` only.
 - Use the target resource's group constants (e.g., `Product::GROUP_ADMIN_READ`).
 - Each property must have `#[Groups]` to be serialized.
 - Before creating a new resource, check whether an existing one can be extended via Addon.

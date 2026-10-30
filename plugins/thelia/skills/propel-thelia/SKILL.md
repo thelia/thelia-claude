@@ -661,6 +661,9 @@ Some methods that overrode Propel getters/setters with incompatible signatures w
 
 - **DDEV:** the `db` user cannot CREATE arbitrary databases; use `db` as the database name.
 - **Transaction nesting:** `ConnectionWrapper` supports nested transactions (depth counter).
+- **A nested `rollBack()` rolls nothing back at that moment:** it marks the transaction, and the outer `commit()` throws `RollbackException`. Calling `clearInstancePool()` after a rollback is a precaution, not something the core requires.
+- **`LIKE` escapes neither `%` nor `_`.** Escape them in the value when it comes from a user.
+- **`update()` returns the number of rows actually changed** (MySQL does not count rows rewritten with the same value).
 - **Prepared statements:** cache is enabled by default (`PROPEL_ATTR_CACHE_PREPARES = true`).
 
 ### API Platform

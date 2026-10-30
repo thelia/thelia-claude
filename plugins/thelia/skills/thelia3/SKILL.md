@@ -96,7 +96,7 @@ local/modules/MyModule/
 |  +- schema.xml             # REQUIRED if DB tables
 |  +- TheliaMain.sql         # Initial SQL (postActivation)
 |  +- update/                # Versioned *.sql files (1.0.1.sql, 1.1.0.sql...)
-|  +- config.xml             # REQUIRED file (may be empty); content only for exports/imports/parameters/loop aliases
+|  +- config.xml             # OPTIONAL; only for exports/imports/parameters/loop aliases
 +- Controller/               # PHP 8 #[Route] - auto-scanned by ModuleAttributeLoader
 +- Api/Resource/             # Auto-discovered via configureServices() + uriTemplate
 +- Form/                     # extends BaseForm -> auto-tag thelia.form
@@ -162,7 +162,7 @@ final class MyModule extends BaseModule
 - Exclude the directories that hold no class **relative to the module**: `->exclude([__DIR__.'/I18n/*'])`. Never `THELIA_MODULE_DIR.'MyModule/I18n/*'`: that constant is `vendor/thelia/modules/`, so a module living in `local/modules/` (zip uploaded from the back office, development) scans its translation files as classes, `configureServices()` throws "Expected to find class ...\I18n\...", and outside debug the core only logs it: the module runs with **no service at all**.
 - `update()` runs inside the core's transaction, right after the core wrote the new version to `module`. A schema change there (`ALTER TABLE` in `Config/update/*.sql`) commits that transaction implicitly on MySQL. On a core that has it (3.3+), put DDL in `postUpdate(string $currentVersion, string $newVersion)`, called once the update is committed (not on install, not retried if it fails: keep it idempotent). Never run DDL on a second connection from `update()`: on MySQL 8 the core transaction holds metadata locks on every table linked to `module` by a foreign key, and the `ALTER` waits for them forever (`lock_wait_timeout` defaults to one year).
 - `module.xml` minimal (metadata + `<fullnamespace>`).
-- `config.xml`: its **content** is optional - only `<exports>`, `<imports>`, `<parameters>`, or a `<loop name="alias">` that differs from the auto snake_case name. On released 3.2 cores the **file** is required: the kernel loads it for every active module without checking that it exists, so a module without it stops the container compilation (`FileLocatorFileNotFoundException`). The development branch loads it only when present. Keep an empty `<config>` while you support released cores.
+- `config.xml`: the whole **file** is optional. The kernel loads it only when it exists, so a module without it compiles. Use it only for `<exports>`, `<imports>`, `<parameters>`, or a `<loop name="alias">` that differs from the auto snake_case name.
 - `local/modules/` takes PRIORITY over `vendor/thelia/modules/`.
 - Single source of truth at boot: `ModuleQuery::getActivated()`. A module present on the filesystem but absent from the DB is invisible.
 - Details: [references/modules.md](references/modules.md)
@@ -280,7 +280,7 @@ final class MyModule extends BaseModule
 | `.env.test` ignored in DDEV, wiping dev DB | `web_environment` injects `DATABASE_*` into shell, `Dotenv` does not override (`override=false`) | `env -u DATABASE_*` / `unset()` before `bootEnv` |
 | `ConfigQuery::read()` returns stale value | PSR `thelia_config` cache not invalidated by direct SQL UPDATE | `ConfigQuery::write()` or `initCacheConfigs(true)`; `php Thelia cache:clear` |
 | `SecurityContext::isGranted([A, B], ...)` | combines resources in **AND** | for OR, iterate resource by resource |
-| `_or()` Propel | switches **the entire WHERE** to OR | `condition()` + `combine([...], 'OR')` |
+| `_or()` Propel | applies to the next filter only, ORed with the last criterion already added (not the whole WHERE): `filterByA()->filterByB()->_or()->filterByC()` gives `A AND (B OR C)` | `condition()` + `combine([...], 'OR')` when the grouping must be explicit |
 | A JSON or webhook route answers a themed 404 page | `ViewListener` renders a themed view for any controller that does not return a `Response`, and `ErrorListener` turns the resulting `NotFoundHttpException` into the theme's error page | `defaults: ['ignore_thelia_view' => true]` on the route, and return a real `Response` |
 | Injected `TranslatorInterface` cannot see the theme catalog | the core aliases `TranslatorInterface` to `Thelia\Core\Translation\Translator`, which carries module and validator catalogs, not `translations/messages.<locale>.php` | `#[Autowire(service: 'translator')]` when you want the Symfony translator |
 | `app.flashes()` empty on a front page | templates rendered by `TwigParser` get a four-property `app` stub that shadows Symfony's `AppVariable` | read flashes from `app.session.flashBag` |
@@ -296,6 +296,8 @@ final class MyModule extends BaseModule
 | `TypeError` when saving an empty optional form field through an event | many core event setters are non-nullable | cast the empty value to the type's sentinel (`''`, `0`) before calling the setter, never pass `null` |
 | `rewriting_url.redirected` pointing at another view or object | the resolver only follows a redirect to the same view, object and locale; anything else is a 500, not a redirect | create a real redirect rule instead |
 | `aria-*`, `role` and `open` attributes vanish from stored HTML | `HtmlSanitizerConfig::allowSafeElements()` strips them by default | allow the attributes explicitly in the sanitizer configuration |
+| An access rule keyed on `?view=` is bypassed | the route's `_view` wins; the `view` parameter (query string, then body) is read only when `_view` is empty, which is the case on `/`, so `/?view=product` renders the requested view | key the rule on the resolved view, in that order |
+| Native import or export lets any user with the screen right run any handler | only the screen right is checked (import: `UPDATE`, export: `VIEW`) and handlers are built with `new` | add the fine-grained check on `IMPORT_BEGIN` / `EXPORT_BEGIN` |
 
 ## 6. Symfony-native evolution candidates
 
@@ -316,7 +318,7 @@ When working on a module, these patterns are more modern but not yet standard Th
 - `configureServices(ServicesConfigurator)` - module DI entry point (REQUIRED)
 - `ModuleQuery::getActivated()` - single source of active modules at boot
 - `Database` - `Thelia\Core\Install\Database` PDO wrapper (`insertSql()`)
-- `module.xml` - XSD `module-2_2.xsd`; `config.xml` - required file, legacy content (may stay empty)
+- `module.xml` - XSD `module-2_2.xsd`; `config.xml` - optional, legacy content only
 - `PropelResourceInterface` / `PropelResourceTrait` - base API resource
 - `AbstractTranslatableResource` / `TranslatableResourceInterface` / `I18nCollection` - i18n API
 - `ResourceAddonInterface` / `ResourceAddonTrait` - native resource extension (auto-tagged)
