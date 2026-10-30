@@ -191,15 +191,19 @@ Convention: `Config/update/{version}.sql`, merged by `version_compare`.
 ```php
 public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
 {
-    $finder = Finder::create()->name('*.sql')->depth(0)->sortByName()->in(__DIR__.'/Config/update');
+    $files = iterator_to_array(Finder::create()->name('*.sql')->depth(0)->in(__DIR__.'/Config/update'), false);
+    usort($files, static fn ($a, $b) => version_compare($a->getBasename('.sql'), $b->getBasename('.sql')));
     $database = new Database($con);
-    foreach ($finder as $file) {
-        if (version_compare($currentVersion, $file->getBasename('.sql'), '<')) {
+    foreach ($files as $file) {
+        $version = $file->getBasename('.sql');
+        if (version_compare($version, (string) $currentVersion, '>') && version_compare($version, (string) $newVersion, '<=')) {
             $database->insertSql(null, [$file->getPathname()]);
         }
     }
 }
 ```
+
+Both bounds matter. Without `<= $newVersion`, a script already shipped for a later version replays on the next update and fails (`Duplicate column`). `sortByName()` sorts `3.10.0.sql` before `3.2.0.sql`: sort with `version_compare`.
 
 No auto-generated Doctrine/Propel migrations - only raw SQL via `Thelia\Core\Install\Database::insertSql()`.
 

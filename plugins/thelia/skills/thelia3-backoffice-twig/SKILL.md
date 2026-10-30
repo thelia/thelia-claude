@@ -127,6 +127,7 @@ Diagnosis: if every `_token` in the DOM is consistent but a click still fails, t
 
 - A controller that renders a template from inside the bundle must use the full namespaced path, for example `@BackOfficeDefaultTwig/base.html.twig`. The bundle prefix is not implied, and an unqualified `extends` throws a loader error.
 - `render(controller('Ctrl::action', {x: v}))` passes `x` as a request attribute, not a query parameter. Read it through a typed method argument, not `$request->query->get('x')`.
+- A default-twig template cannot be replaced by a child back-office theme or by `templates/bundles/`. The bundle and its compiler pass switch on only when `active-admin-template` is exactly `default-twig` (`BackOfficeDefaultTwigBundle::isActive()`), so a child theme turns the whole back office off; `templates/bundles/BackOfficeDefaultTwigBundle/` is read after the theme directory (`debug:twig @BackOfficeDefaultTwig/<template>` lists it under "Overridden Files"). The working route is a compiler pass in a project module that calls `prependPath()` on `twig.loader.native_filesystem` for the `BackOfficeDefaultTwig` namespace. Keep it for screens that must differ from the theme; prefer a hook or an upstream change.
 - `{% embed ... only %}` drops the parent context inside the embedded blocks. If a variable is missing in a header partial, check the `with {}` of the embed before suspecting config or the database.
 
 ## Edit screens

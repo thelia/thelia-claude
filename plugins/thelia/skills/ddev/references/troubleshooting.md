@@ -64,6 +64,16 @@ ddev exec top
 
 ## Common pitfalls
 
+### A test runs the old code just after an edit (Mutagen)
+
+On macOS with Mutagen, a file edited on the host reaches the container a few seconds later, and a file written in the container comes back late. A test launched right after an edit, or a sabotage meant to turn a test red, can run the previous version and pass. Run `ddev mutagen sync` before the test, or wait until the container sees the change (`ddev exec grep -q '<new line>' <file>`).
+
+Two `ddev exec` started together on a stopped project each start it: the second fails (port taken, Mutagen session error). Start the project first (`ddev start`, check `ddev describe`), then run the commands.
+
+### Error 500 everywhere after replacing a vendor directory by a symlink
+
+Swapping `vendor/<package>` for a symlink to a local clone leaves PHP-FPM's OPcache with the old paths: classes load twice and every page answers 500. Restart PHP-FPM (`ddev restart`) after the swap and after restoring it.
+
 ### Port already in use
 
 Error: "port 80/443 already allocated"

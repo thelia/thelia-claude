@@ -106,6 +106,10 @@ rm -rf var/cache/test
 
 Add `var/propel/test/` to the removal after a vendor or bundle resync. Symptoms: `ArgumentCountError`, `ServiceNotFoundException` on a service that exists, or hundreds of failures right after a rebase.
 
+## The console refuses to start without `APP_SECRET`
+
+The core encrypts the API keys of its AI connections with a key derived from `kernel.secret` (`Domain/Ai/Vault/AiKeyCipher`), and the service throws when the secret is empty, so commands fail before they run. `.env.local` is not read under `APP_ENV=test`: a CI job or a test shop needs `APP_SECRET` set in its own environment.
+
 ## PHPStan reports a hundred missing classes after clearing `var/propel`
 
 The generated Propel models live under `var/propel/<env>/model/`. Removing that directory (or running on a fresh clone) makes PHPStan and `lint:twig`/`lint:yaml` fail on classes that are not missing but not generated yet. Run `bin/test-prepare` (or the model generation) first, and run the linters with `--env=test` after it.

@@ -306,7 +306,7 @@ When working on a module, these patterns are more modern but not yet standard Th
 - Listeners: `EventSubscriberInterface` -> `#[AsEventListener]` SF 7.4
 - Console: `ContainerAwareCommand::execute()` -> invokable command SF 7.4 + `#[Argument]`/`#[Option]`
 - API forms: DTO + `#[MapRequestPayload]` + Validator (zero core usage)
-- Async: Messenger ABSENT - strong candidate for native async (email, stock recalculation, PDF)
+- Async: Messenger is in the core (mails, webhooks, exports and imports); move other slow work (stock recalculation, PDF) onto its `async` transport rather than a home-made queue
 - DTO mapping: manual transformations -> `ObjectMapper` SF 7.3
 - Web security: Thelia `SecurityContext` + `checkAuth()` -> Symfony Voters + `#[IsGranted]` (Propel profile integration to design)
 - AP serialization perf: `JsonStreamer` SF 7.3 on large collections
