@@ -357,6 +357,8 @@ export default class extends Controller {
 
 **Trap**: `CartFacade::getCartFromSession()` can return `null`. For write actions: use `getOrCreateFromSession()`.
 
+**Stock on add**: with stock control on and a non-virtual product, `CartItem::addQuantity()` on an existing line silently keeps the old quantity when stock is short, whereas a new line throws `NotEnoughStockException`. The API `POST` runs in one transaction, all or nothing. `CART_CLEAR` deletes the cart record.
+
 When to use a Facade vs direct Propel:
 
 | Situation | Approach |

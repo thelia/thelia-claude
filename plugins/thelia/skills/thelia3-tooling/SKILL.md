@@ -67,6 +67,8 @@ An admin that renders with no styling means `sass:build` has not run: the core p
 php bin/console sass:build
 ```
 
+After `template:set`, run `tailwind:build` in a new process: the entry stylesheet is computed when the container is built, from the active theme, so the same process still builds the previous theme's sheet.
+
 Deploying to production adds two steps that no install script runs for you: `tailwind:build --minify` for the stylesheet, and `asset-map:compile` to write the mapped assets into the public directory. AssetMapper's dev server, which serves them on the fly during development, follows the debug flag and is off in production, so a front office deployed without the compile loads with no CSS and no JavaScript.
 
 ## A missing GitHub token fails an install on an unrelated message

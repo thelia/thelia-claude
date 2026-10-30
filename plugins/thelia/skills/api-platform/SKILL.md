@@ -242,22 +242,27 @@ Key differences from Doctrine:
 
 ### Addon (extending existing resources)
 
-File in `MyModule/Api/Addon/`. Static `buildFromModel()` method with `#[Ignore]`. Use the target resource's groups.
+File in `MyModule/Api/Addon/`. The class implements `ResourceAddonInterface` (usually through `ResourceAddonTrait`): the interface is what tags it, and `buildFromModel()` is an instance method. Use the target resource's groups. The addon is only built when one of its properties is in the current serialization groups.
 
 ```php
-class ProductMyAddon
+class ProductMyAddon implements ResourceAddonInterface
 {
+    use ResourceAddonTrait;
+
     #[Groups([Product::GROUP_ADMIN_READ, Product::GROUP_FRONT_READ])]
     public ?string $customField = null;
 
-    #[Ignore]
-    public static function buildFromModel(
-        PropelProduct $propelModel,
-        Product $resource,
-    ): self {
-        $addon = new self();
-        $addon->customField = $propelModel->getVirtualColumn('custom_field');
-        return $addon;
+    public static function getResourceParent(): string { return Product::class; }
+
+    public static function getPropelRelatedTableMap(): ?TableMap { return new MyAddonTableMap(); }
+
+    public function buildFromModel(
+        ActiveRecordInterface $activeRecord,
+        PropelResourceInterface $abstractPropelResource,
+    ): ResourceAddonInterface {
+        $this->customField = $activeRecord->getVirtualColumn('custom_field');
+
+        return $this;
     }
 }
 ```

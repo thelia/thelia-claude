@@ -69,7 +69,7 @@ Optional: `<required><module version="x.y">Code</module>` (dependencies), `<thel
 
 ## 4. `config.xml` - OPTIONAL
 
-`config.xml` is no longer required for the majority of cases. Keep it ONLY for:
+The whole file is optional: the kernel loads it only when it exists. Keep it ONLY for:
 
 - `<exports>` / `<imports>` (Thelia import/export channels)
 - `<parameters>` (Symfony parameters specific to the module)
@@ -240,7 +240,7 @@ Note: these constraints apply to **Propel models**. Native PHP Event classes (`$
 
 ### 7.5 Propel query traps
 
-- **`_or()` rewrites the ENTIRE WHERE**: `$query->filterByStatus($s)->_or()->filterByRef($r)` does not produce `status AND (... OR ...)` but switches the entire WHERE to OR (including previous filters). To group an OR without breaking other filters, use `condition()` + `combine()`:
+- **`_or()` ORs the next filter with the last criterion only**: `$query->filterByStatus($s)->filterByType($t)->_or()->filterByRef($r)` produces `status AND (type OR ref)`, not an OR over the whole WHERE. `filterBy*()` on a column that already has a criterion ANDs onto it; only a direct `add()` replaces the entry of the same key. To make a grouped OR explicit, use `condition()` + `combine()`:
   ```php
   $query
       ->condition('c1', OrderTableMap::COL_REF.' LIKE ?', $needle)

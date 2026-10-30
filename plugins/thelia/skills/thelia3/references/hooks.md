@@ -33,6 +33,8 @@ Priority conventions:
 
 Higher = earlier.
 
+Cart duplication at login: when the cart is duplicated (already attached to a customer, or a visitor-dependent pricing applies to a non-empty cart), the core dispatches `CART_ITEM_DUPLICATE` per line and then `CART_DUPLICATED`, never `CART_ADDITEM`, and gift lines are not copied. Otherwise the cart is only attached to the customer, with no event.
+
 ## 2. Symfony listeners (`EventSubscriberInterface`)
 
 Dominant pattern in core and modules: static `EventSubscriberInterface::getSubscribedEvents()`. **Not** `#[AsEventListener]` (zero usage in core/modules).
@@ -283,6 +285,7 @@ Key facts:
 - Typical insertion points: `layout.head.bottom`, `layout.body.bottom`, `account.bottom` (check the active theme for the exact list).
 - Flexy points: `layout.head`, `layout.body.top`, `layout.header.bottom`, `layout.footer.top`, `layout.body.bottom`, then `home|product|category|cart|checkout|account|order-placed` `.top`/`.bottom` plus `product.details.bottom`. Primary use case: SEO / JS analytics (`layout.head` for meta/JSON-LD/GTM script, `layout.body.top` for the GTM noscript).
 - `final readonly class` works here (constructor DI, unlike `BaseHook`).
+- To hide or limit what a module's theme hook renders, decorate (`#[AsDecorator]`) the service that implements `ThemeHookInterface`: the `thelia.theme_hook` tag moves to the decorator, and the module stays untouched.
 
 ## 5. Loops - AUTO-DISCOVERY (DEPRECATED)
 

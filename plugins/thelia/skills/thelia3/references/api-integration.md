@@ -116,9 +116,9 @@ Built-in providers/processors (auto-assigned by `PropelResourceCollectionMetadat
 
 ## 4. `ResourceAddonInterface` - extend a native resource
 
-(`ResourceAddonInterface.php:23`, `ResourceAddonTrait.php:23`)
+(`ResourceAddonInterface`, `ResourceAddonTrait`)
 
-Auto-tagged `thelia.api.resource.addon` (`TheliaKernel.php:476`). `RegisterApiResourceAddonPass` (`TheliaBundle.php:72`) collects by parent class in `Thelia.api.resource.addons[$parent][$shortName]`.
+Auto-tagged `thelia.api.resource.addon` by the autoconfiguration map of `TheliaKernel`, so a class without `implements ResourceAddonInterface` is neither tagged nor built. `RegisterApiResourceAddonPass` collects the tagged classes by parent class in `Thelia.api.resource.addons[$parent][$shortName]`. `buildFromModel()` is an instance method; the addon is built only when one of its properties is in the current serialization groups, and a write calls `doSave()` only when the request carries one of its writable fields.
 
 ```php
 interface ResourceAddonInterface
@@ -148,7 +148,7 @@ class CustomerCustomerFamily implements ResourceAddonInterface
 }
 ```
 
-Available automatically in JSON-LD under the shortname **raw PascalCase** (`ReflectionClass::getShortName()` cf `RegisterApiResourceAddonPass.php:37`): `{"CustomerCustomerFamily": {"code": "pro"}}`. Not camelCase. The JSON key = class short name as-is. `ResourceAddonTrait::extendQuery()` performs an auto LEFT JOIN via TableMap with columns prefixed `{AddonName}_`.
+Available automatically in JSON-LD under the shortname **raw PascalCase** (`ReflectionClass::getShortName()` in `RegisterApiResourceAddonPass`): `{"CustomerCustomerFamily": {"code": "pro"}}`. Not camelCase. The JSON key = class short name as-is. `ResourceAddonTrait::extendQuery()` performs an auto LEFT JOIN via TableMap with columns prefixed `{AddonName}_`.
 
 `ResourceAddonExtension` implements **both** interfaces (`QueryItemExtensionInterface` + `QueryCollectionExtensionInterface`) - the addon is joined and exposed **on both `Get` single and `GetCollection`**. The `#[Groups]` on addon properties control visibility per operation.
 
@@ -214,6 +214,10 @@ Two levels:
 - `/api/admin/**` -> `ROLE_ADMIN`
 - `/api/front/account/**` -> `ROLE_CUSTOMER`
 - Remaining `/api/front/**` -> **NOT PROTECTED BY DEFAULT**
+
+The core rules come **before** the project's `access_control` entries and Symfony applies the first match, so a project rule under `^/api/admin`, `^/api/front/account`, the login and refresh routes, `^/api/docs` or `^/api/mcp` is never reached. Check by replaying the request with a token.
+
+**Admin permissions**: an API resource of a module, or a controller under `/api/admin`, with no entry linking its class to an `AdminResources` code in the `thelia.api.admin_resources` parameter is refused to every administrator who is not a superadministrator.
 
 **2. `security:` ExpressionLanguage on the operation**:
 - Evaluated AFTER `fetchData`, on the loaded `object`.
@@ -589,6 +593,8 @@ Format: `null` (default) = normalized PHP array. `'jsonld'` = Hydra (`@context`,
 `AttributeAccessService` - `attribute{Type}($name)` methods: `Admin`, `Customer`, `Product`, `Category`, `Content`, `Folder`, `Brand`, `Currency`, `Country`, `Cart`, `Coupon`, `Lang`, `Config`.
 
 **Critical CLI trap**: `RequestBuilderService` throws `RuntimeException` if `getMainRequest()` is null (`AttributeAccessService.php:441-445`). `resources()` AND `attr()` are **unusable in CLI**.
+
+**Cross-request cache**: the cache of `resources()` (the `DataAccessService` layer, not the HTTP API) is off by default; set `THELIA_DATA_ACCESS_CACHE` to turn it on. Its key holds the path, parameters, format and language, never the customer. Products and sale elements bypass it as soon as a price depends on the visitor or a product visibility rule exists; brands, categories and contents do not.
 
 **Critical mutation trap**: `DataAccessService::resources()` is ONLY a READ layer (`Get` / `GetCollection`). `RequestBuilderService::createApiRequest()` (`RequestBuilderService.php:31`) always sets the HTTP method to `GET`. To trigger a `Post` / `Patch` / `Delete` from a LiveComponent or service:
 

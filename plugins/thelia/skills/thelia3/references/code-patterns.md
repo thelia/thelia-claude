@@ -172,6 +172,8 @@ The core sections are `customer`, `addresses`, `orders`, `carts`, `newsletter`; 
 
 Answer identically whether it returned `true` or `false`. A UI that distinguishes the two leaks which addresses have an account.
 
+The forgotten-password request has the same limits (3 per hour per address, 10 per IP), and its page confirms the sending either way. Clearing the `cache.rate_limiter` pool resets every counter.
+
 ### `form_end()` renders un-rendered fields
 
 Whenever a field is rendered as raw HTML (`<select name="{{ form.X.vars.full_name }}">`, `<input ...>`) instead of `form_widget`/`form_row`, Symfony does not know it was rendered: `form_end(form)` outputs it again at the end of the form (via `form_rest`), duplicated and outside the layout (sometimes outside a modal). Two fixes:

@@ -316,6 +316,10 @@ Traps that apply to any seed, import, manual fixture, or populate command:
 | `CustomerFacade::login($customer)` TypeError | takes a `CustomerLogin` DTO - do not use in tests, prefer `loginAsCustomerInSession()` |
 | `ActionIntegrationTestCase` without `LogsInAsCustomer` | extend `ApiTestCase` or push via `SecurityContext::setCustomerUser()` |
 | FK `customer` crash on `factory->customer()` | call `factory->lang()`, `factory->currency()`, `factory->customerTitle()` in setup |
+| Integration, Web and Api cases skipped, CI stays green | they are skipped when no shop is installed: a CI without an installed shop proves nothing for them |
+| Cannot mock `SecurityContext::isGranted()` | it is `final`; `checkRole()` is not |
+| State leaking between tests through static caches | `ConfigQuery`, `Order` and `TaxRuleQuery` keep static caches; `ConfigQuery` and `TaxRuleQuery` expose `resetCache()` |
+| Expecting a savepoint on a nested transaction | nested transactions are a counter, with no savepoint |
 
 ## Test infrastructure pitfalls
 
