@@ -209,6 +209,12 @@ Bind inputs to writable LiveProps. When the input changes, the component re-rend
 </select>
 ```
 
+A field with no `data-model` that the user changed keeps the user's value on every later re-render, even when the server renders another state: the unsynced-inputs tracker records it on `input` and never forgets it (a checkbox stays ticked after an action that unticked it on the server). Bind the field to a writable LiveProp, or fire the action on `input` with the `stop` modifier so the tracker never sees the event:
+
+```twig
+<input type="checkbox" data-action="input->live#action" data-live-action-param="stop|toggleCard">
+```
+
 ### Validation Modifiers (since 2.28)
 
 ```twig

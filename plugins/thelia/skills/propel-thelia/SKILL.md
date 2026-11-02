@@ -242,6 +242,11 @@ $products = ProductQuery::create()
     ->find();
 ```
 
+Result traps:
+- `fetchColumn()` on a statement of the Propel connection returns `''` when no row matches (the wrapper casts PDO's `false` to a string), and `null` for a SQL `NULL`. Neither `false !==` nor `null !==` tells "no row": use `fetchAll(\PDO::FETCH_COLUMN)` or `fetch()`.
+- `->select(['Id'])->findOne()` returns a scalar or `null` at run time, but the generated docblock types it as a model: PHPStan rejects an `(int)` cast. Prefer `findOneByRef($ref)?->getId()`.
+- Model helpers that walk a relation load it once per object: `Order::getWeight()` iterates the order products, so a list that calls it per row runs one query per order. Sum in one query, or load the relation with a join first.
+
 ### i18n
 
 ```php

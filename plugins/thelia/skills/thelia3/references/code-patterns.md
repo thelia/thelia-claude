@@ -18,7 +18,7 @@
 - `buildForm()` abstract, `$this->formBuilder->add(...)`.
 - Constraints via `'constraints' => [new NotBlank(), ...]` in field options (NOT `#[Assert\...]` attributes on the form - those are reserved for DTOs).
 - CSRF enabled by default via `CsrfExtension` (override with `'csrf_protection' => false`).
-- Hidden fields auto-added: `success_url`, `error_url`, `error_message`.
+- Hidden fields auto-added: `success_url`, `error_url`, `error_message`. A module that checks a posted `success_url` against open redirects must anchor with `\z` or the `D` modifier (`$` also matches before a trailing newline) and reject control characters: the browser strips tabs and newlines from a URL, so `/\t/evil.example` becomes `//evil.example`.
 - Dispatches `FORM_BEFORE_BUILD.{name}` and `FORM_AFTER_BUILD.{name}`.
 - `static getName()`: canonical name for `getForm('name')` Twig + `formService->getFormByName()`.
 - `FirewallForm extends BaseForm`: adds rate-limit / brute-force protection.
@@ -392,15 +392,17 @@ final class DoSomethingCommand
 }
 ```
 
-## 8. Async (Messenger) - ABSENT
+## 8. Async (Messenger)
 
-`symfony/messenger` is not present in Thelia 3. Zero `MessageBus`, zero `MessageInterface` in core. Everything is synchronous via `EventDispatcher`.
+The core configures Messenger (`Config/Resources/packages/framework.php`): `SendEmailMessage` and webhooks go to the `async` transport, exports and imports to `async_heavy`, failures to `failed` (shop database). With `MESSENGER_TRANSPORT_DSN` empty the transport is `sync://` and every job runs in the request that dispatched it; once it names a queue, nothing is sent until a worker runs `messenger:consume`.
 
-For async (email sending, stock recalculation, PDF generation):
-- Either synchronous via event listener
-- Or external DB/Redis queue or job scheduler
+Mail traps, queue or not, since `MailerFactory::send()` goes through the bus:
 
-**Strong evolution candidate**: integrate `symfony/messenger` for native Symfony async.
+- `MessageEvent` fires twice per mail: once when queued (`isQueued()` true, on a clone that Symfony then throws away), once when the transport sends it. A listener that rewrites the message, or a test that counts sent mails, acts only when `!$event->isQueued()`.
+- A guard on outgoing mail (redirect, subject prefix) therefore runs where the transport runs: in the worker once a queue is set. Give the worker the same guard configuration as the web server, or a shop built from production data mails its customers.
+- Anything written "after sending" (order history of a mail) belongs in a transport-time listener, not after `MailerFactory::send()`, which returns as soon as the mail is queued.
+
+For other slow work (stock recalculation, PDF generation), dispatch a message to `async` rather than building another queue.
 
 ## 9. Repository pattern - Propel queries and third-party APIs
 

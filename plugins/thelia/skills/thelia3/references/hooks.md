@@ -225,8 +225,8 @@ public static function getSubscribedHooks(): array
 BO hooks are strings registered dynamically in the DB via `getHooks()` from modules + those placed in templates. To enumerate the extension points actually available in a given project:
 
 ```bash
-# Hooks placed in BO templates (Twig)
-grep -rn "hook('" templates/backOffice/default-twig/ | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
+# Hooks placed in BO templates (Twig): safe_hook(), hook_block() and hook_cards()
+grep -rhoE "(safe_hook|hook_block|hook_cards)\('[^']+'" templates/backOffice/default-twig/ | sed -E "s/.*\('//; s/'$//" | sort -u
 
 # Legacy hooks placed in front templates (Twig)
 grep -rn 'hook(' templates/frontOffice/flexy/ | grep -E "hook\('([^']+)'" | sed -E "s/.*hook\('([^']+)'.*/\1/" | sort -u
@@ -239,6 +239,8 @@ ddev exec mysql -udb -pdb thelia -e "SELECT code, type FROM hook WHERE activate=
 ```
 
 Inventing a hook code (e.g. `customer.tab-content`) that does not exist = listener silently inactive. Always verify a hook exists before attaching code to it.
+
+Read the arguments at the call too: a hook listener that expects a name the template does not pass reads `null` and falls back silently. The product tabs pass `product` (the id), never `product_id`: `hook_block('product.tab', {product: product.id, id: product.id})` and `hook_cards('product.tab-content', {product: product.id, ...})`. A statistics tab that read `product_id` showed the whole catalogue instead of the product.
 
 ## 4. Front theme hooks - `theme_hook()` + `ThemeHookInterface`
 
@@ -347,4 +349,6 @@ For all new front development: **API Resources + `resources()`** or **LiveCompon
 | Wrong event priority | 128 = core handler, 192+ = guard, 64 = post-processing |
 | `ORDER_SET_POSTAGE` deprecated | use `CART_SET_POSTAGE` |
 | Back-office hook listener never called, log says `Hook <name> is unknown.` | the hook code has no row in the `hook` table; check `SELECT code FROM hook` before subscribing, and declare a new hook through the module's `getHooks()` |
+| Two hook classes of one module subscribe the same hook with the same method name, and one of them is never called (menu entries vanish, no error) | `module_hook` holds one row per module, hook and method; the second class finds the row of the first and adds nothing. Give each class its own method name |
+| A position declared for a module hook has no effect | the declared position is read only when the `module_hook` row is created; an existing row (a migrated one included, when its method name is reused) keeps the position stored in the back office |
 | A hook declared by a module becomes inactive at each activation or update | `createOrUpdateHook()` sets `active` only when the declaration carries `'active' => true`; the last module activated decides |

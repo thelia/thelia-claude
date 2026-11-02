@@ -106,6 +106,10 @@ rm -rf var/cache/test
 
 Add `var/propel/test/` to the removal after a vendor or bundle resync. Symptoms: `ArgumentCountError`, `ServiceNotFoundException` on a service that exists, or hundreds of failures right after a rebase.
 
+## The console refuses to start without `APP_SECRET`
+
+The core encrypts the API keys of its AI connections with a key derived from `kernel.secret` (`Domain/Ai/Vault/AiKeyCipher`), and the service throws when the secret is empty, so commands fail before they run. `.env.local` is not read under `APP_ENV=test`: a CI job or a test shop needs `APP_SECRET` set in its own environment.
+
 ## PHPStan reports a hundred missing classes after clearing `var/propel`
 
 The generated Propel models live under `var/propel/<env>/model/`. Removing that directory (or running on a fresh clone) makes PHPStan and `lint:twig`/`lint:yaml` fail on classes that are not missing but not generated yet. Run `bin/test-prepare` (or the model generation) first, and run the linters with `--env=test` after it.
@@ -129,6 +133,14 @@ Composer 2.10 and later refuse by default to install a version covered by a regi
 ## `installer-paths` reinstalls over a local clone
 
 A package installed through `installer-paths` (modules, themes) is reinstalled from the registry by any `composer update` or `composer require`, over the directory it targets. A local development clone placed there is clobbered. Use a path repository with `symlink: true` for local work.
+
+## A core upgrade runs Flex recipes
+
+`composer update` of the core installs new bundles through their Flex recipes, which write `config/packages/*.yaml`, routes and `.env.dist` entries. Read and commit them with the lock, and update only the packages concerned (`composer update thelia/core thelia/config thelia/setup ...`): `-W` also moves every unrelated dependency it can, a few dozen packages where a few were needed.
+
+## Module assets are copied once
+
+The assets a module serves to a theme (back-office JS, CSS) are copied to `public/assets/<template>/<module>/` the first time they are requested, then never refreshed unless debug mode is on with `process_assets`: after a module update or a switch to a path repository, production keeps serving the old file. A cache clear does not touch `public/assets`; delete the module's folder there at each deployment.
 
 ## Production cache: purge, then warm up
 

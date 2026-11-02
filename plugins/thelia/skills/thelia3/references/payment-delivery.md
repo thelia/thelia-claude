@@ -320,6 +320,7 @@ Back-office template (Twig): `templates/backOffice/default-twig/mypayment/config
 |---|---|
 | `<type>` in `module.xml` != abstract type | align `payment` / `delivery` |
 | `pay()` returns `null` without Response | must return an HTTP `Response` (redirect, HTML form...) |
+| Part of the order already paid by an instant means (gift card), and the core refuses to combine it with the module | implement the marker `BalanceChargingPaymentModuleInterface` and send `getAmountToCharge($order)` to the provider, never `Order::getTotalAmount()` (`Domain/Payment/OrderPaymentComposer.php`). Confirm through `confirmPayment()` of `BasePaymentModuleController` or with `OrderEvent::setSourceModuleCode()`, otherwise the confirmation of a cancelled order whose part was given back is refused without a trace |
 | `pay()` URL doubly absolutized | ONE absolutization only: `URL::absoluteUrl()` OR `UrlGeneratorInterface::ABSOLUTE_URL`, not both |
 | `isValidPayment()` reads Cart from Request in CLI | guard `$this->getRequest()` + try/catch + fallback `false` |
 | Webhook callback not signed | always sign + verify (HMAC) |
@@ -358,5 +359,6 @@ Back-office template (Twig): `templates/backOffice/default-twig/mypayment/config
 | Status change and stock movement skipped after a module resent the confirmation | `Action\Order::updateStatus` listens to `ORDER_UPDATE_STATUS` at 128; never `stopPropagation()` above it, and resend a confirmation with a new `OrderEvent`, not the one being dispatched |
 | `ORDER_PAY` listener finds no cart (`filterByCartId(null)` matches `IS NULL`) | once the order of the session cart is paid, `Session::getSessionCart()` hands out a new, unsaved cart; read `order.cart_id` |
 | Logic on `ORDER_BEFORE_PAYMENT` misses back-office or imported orders | only `Action\Order::create` (the checkout) dispatches it; what must follow every order creation listens to `ORDER_PRODUCT_AFTER_CREATE` |
+| The order confirmation e-mail misses what the payment writes (an instant part such as a gift card, its lines) | the confirmation and notification e-mails are sent from `ORDER_BEFORE_PAYMENT`, before `MODULE_PAY` settles the instant parts and before `pay()`: build them from the cart and the pending payment parts, never from rows written while paying |
 | Return from the payment page arrives without session | a cross-site `POST` does not carry the `SameSite=Lax` session cookie; configure the provider to return by `GET`, or find the order from a signed parameter, never from the session alone |
 | Payment, cancel or retry route keyed by order id | check that the order belongs to the logged-in customer, and refuse to mark paid an order that was cancelled meanwhile (late callback): answer the provider and flag it for refund |

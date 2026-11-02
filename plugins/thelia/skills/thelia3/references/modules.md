@@ -124,6 +124,8 @@ Activation flow via BO: dispatch `TheliaEvents::MODULE_TOGGLE_ACTIVATION` -> `ch
 
 CLI: `ModuleManagement::installModule()` validates, inserts into DB, dispatches `MODULE_TOGGLE_ACTIVATION`. `module:post-activate-all` is run by `bin/install`.
 
+The module's title and description (`module_i18n`) are copied from `module.xml` at install only (`ModuleManagement::saveDescription()`), so that an administrator's edits survive updates. A title changed in a later release never reaches an installed shop: rewrite it in `update()` when it matters, for example a payment module whose title is shown to buyers.
+
 ## 6. Routes
 
 Canonical convention: PHP 8 `#[Route]` on controllers. `ModuleAttributeLoader` (`ModuleAttributeLoader.php:35`) scans `Controller/` of each active module with `AttributeDirectoryLoader` + `AttributeRouteControllerLoader`.
@@ -191,15 +193,19 @@ Convention: `Config/update/{version}.sql`, merged by `version_compare`.
 ```php
 public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
 {
-    $finder = Finder::create()->name('*.sql')->depth(0)->sortByName()->in(__DIR__.'/Config/update');
+    $files = iterator_to_array(Finder::create()->name('*.sql')->depth(0)->in(__DIR__.'/Config/update'), false);
+    usort($files, static fn ($a, $b) => version_compare($a->getBasename('.sql'), $b->getBasename('.sql')));
     $database = new Database($con);
-    foreach ($finder as $file) {
-        if (version_compare($currentVersion, $file->getBasename('.sql'), '<')) {
+    foreach ($files as $file) {
+        $version = $file->getBasename('.sql');
+        if (version_compare($version, (string) $currentVersion, '>') && version_compare($version, (string) $newVersion, '<=')) {
             $database->insertSql(null, [$file->getPathname()]);
         }
     }
 }
 ```
+
+Both bounds matter. Without `<= $newVersion`, a script already shipped for a later version replays on the next update and fails (`Duplicate column`). `sortByName()` sorts `3.10.0.sql` before `3.2.0.sql`: sort with `version_compare`.
 
 No auto-generated Doctrine/Propel migrations - only raw SQL via `Thelia\Core\Install\Database::insertSql()`.
 
