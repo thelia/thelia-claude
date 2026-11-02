@@ -39,4 +39,5 @@ PR template: backward compatibility, schema change with `setup/thelia.sql` plus 
 ## 4. Update scripts and companion PRs
 
 - A change to `setup/update/sql/<version>.sql` must replay safely: guard each `ALTER` with a lookup in `information_schema` (the script already does it for its columns) and put it before the final `SET FOREIGN_KEY_CHECKS = 1`, not appended after it. `main` adds blocks to the same file in parallel, so expect a rebase.
+- A new column on a versioned table (`versionable` behavior in `schema.xml`, such as `order_return`) also goes in its `<table>_version` table, in `setup/thelia.sql` and in the update script. A column holding personal data also goes in `CustomerAnonymizer` and `CustomerPersonalDataExporter`, and one the API exposes in its resource.
 - A theme PR (Flexy, default-twig) that calls an API added by a core PR still unreleased runs its CI against the published core and fails there. Guard the call (`method_exists()`, a test skipped without the field) until the core release, then remove the guard.

@@ -134,6 +134,14 @@ Composer 2.10 and later refuse by default to install a version covered by a regi
 
 A package installed through `installer-paths` (modules, themes) is reinstalled from the registry by any `composer update` or `composer require`, over the directory it targets. A local development clone placed there is clobbered. Use a path repository with `symlink: true` for local work.
 
+## A core upgrade runs Flex recipes
+
+`composer update` of the core installs new bundles through their Flex recipes, which write `config/packages/*.yaml`, routes and `.env.dist` entries. Read and commit them with the lock, and update only the packages concerned (`composer update thelia/core thelia/config thelia/setup ...`): `-W` also moves every unrelated dependency it can, a few dozen packages where a few were needed.
+
+## Module assets are copied once
+
+The assets a module serves to a theme (back-office JS, CSS) are copied to `public/assets/<template>/<module>/` the first time they are requested, then never refreshed unless debug mode is on with `process_assets`: after a module update or a switch to a path repository, production keeps serving the old file. A cache clear does not touch `public/assets`; delete the module's folder there at each deployment.
+
 ## Production cache: purge, then warm up
 
 Purging `var/cache/prod` must always be followed by an explicit `cache:warmup`. The LiveComponents template map is produced by a cache warmer that nothing rebuilds lazily, so a purged-but-not-warmed production answers `500` on the first component render. `cache:clear` in production is the wrong tool for the same reason (see the Thelia console section).

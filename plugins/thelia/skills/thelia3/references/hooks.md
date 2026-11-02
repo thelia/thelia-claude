@@ -349,4 +349,6 @@ For all new front development: **API Resources + `resources()`** or **LiveCompon
 | Wrong event priority | 128 = core handler, 192+ = guard, 64 = post-processing |
 | `ORDER_SET_POSTAGE` deprecated | use `CART_SET_POSTAGE` |
 | Back-office hook listener never called, log says `Hook <name> is unknown.` | the hook code has no row in the `hook` table; check `SELECT code FROM hook` before subscribing, and declare a new hook through the module's `getHooks()` |
+| Two hook classes of one module subscribe the same hook with the same method name, and one of them is never called (menu entries vanish, no error) | `module_hook` holds one row per module, hook and method; the second class finds the row of the first and adds nothing. Give each class its own method name |
+| A position declared for a module hook has no effect | the declared position is read only when the `module_hook` row is created; an existing row (a migrated one included, when its method name is reused) keeps the position stored in the back office |
 | A hook declared by a module becomes inactive at each activation or update | `createOrUpdateHook()` sets `active` only when the declaration carries `'active' => true`; the last module activated decides |

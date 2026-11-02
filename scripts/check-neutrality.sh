@@ -60,7 +60,7 @@ scan() { # $1 pattern, $2 description
 for i in "${!GENERIC_PATTERNS[@]}"; do
   scan "${GENERIC_PATTERNS[$i]}" "${GENERIC_DESCRIPTIONS[$i]}"
 done
-for pat in "${EXTRA_PATTERNS[@]}"; do
+for pat in ${EXTRA_PATTERNS[@]+"${EXTRA_PATTERNS[@]}"}; do
   scan "$pat" "project-specific denylist match"
 done
 

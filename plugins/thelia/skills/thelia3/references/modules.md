@@ -124,6 +124,8 @@ Activation flow via BO: dispatch `TheliaEvents::MODULE_TOGGLE_ACTIVATION` -> `ch
 
 CLI: `ModuleManagement::installModule()` validates, inserts into DB, dispatches `MODULE_TOGGLE_ACTIVATION`. `module:post-activate-all` is run by `bin/install`.
 
+The module's title and description (`module_i18n`) are copied from `module.xml` at install only (`ModuleManagement::saveDescription()`), so that an administrator's edits survive updates. A title changed in a later release never reaches an installed shop: rewrite it in `update()` when it matters, for example a payment module whose title is shown to buyers.
+
 ## 6. Routes
 
 Canonical convention: PHP 8 `#[Route]` on controllers. `ModuleAttributeLoader` (`ModuleAttributeLoader.php:35`) scans `Controller/` of each active module with `AttributeDirectoryLoader` + `AttributeRouteControllerLoader`.
